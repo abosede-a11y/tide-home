@@ -1,0 +1,15 @@
+{
+  "name": "tidehome",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["tidehome-api", "tidehome-web"],
+  "scripts": {
+    "dev:api": "cd tidehome-api && npm run start:dev",
+    "dev:web": "cd tidehome-web && npm run dev",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "install:all": "cd tidehome-api && npm install && cd ../tidehome-web && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

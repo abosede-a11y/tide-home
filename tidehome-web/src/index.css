@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply font-sans bg-tide-sand text-tide-deep antialiased; }
+  h1,h2,h3 { @apply font-serif; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer border-0 outline-none; }
+  .btn-primary { @apply bg-tide-deep text-white hover:bg-tide-mid active:scale-95; }
+  .btn-secondary { @apply bg-white text-tide-deep border border-tide-deep/10 hover:bg-tide-sand active:scale-95; }
+  .btn-danger { @apply bg-red-50 text-red-700 border border-red-200 hover:bg-red-100; }
+  .btn-sm { @apply px-3 py-1.5 text-xs; }
+  .btn-lg { @apply px-6 py-3 text-base; }
+
+  .card { @apply bg-white rounded-xl border border-tide-deep/10 p-6; }
+  .card-sm { @apply bg-white rounded-xl border border-tide-deep/10 p-4; }
+
+  .form-input { @apply w-full px-3.5 py-2.5 rounded-lg border border-tide-deep/15 text-sm font-sans text-tide-deep bg-white focus:outline-none focus:ring-2 focus:ring-tide-mid/20 focus:border-tide-mid transition-all; }
+  .form-label { @apply block text-xs font-medium text-tide-deep mb-1.5; }
+
+  .pill { @apply inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold; }
+  .pill-green { @apply bg-green-50 text-green-700; }
+  .pill-amber { @apply bg-amber-50 text-amber-700; }
+  .pill-red { @apply bg-red-50 text-red-700; }
+  .pill-blue { @apply bg-blue-50 text-blue-700; }
+  .pill-gray { @apply bg-gray-100 text-gray-600; }
+
+  .table-wrap { @apply bg-white rounded-xl border border-tide-deep/10 overflow-hidden; }
+  .th { @apply px-4 py-3 text-left text-[11px] font-semibold text-tide-muted uppercase tracking-wider bg-tide-sand border-b border-tide-deep/10; }
+  .td { @apply px-4 py-3.5 text-sm text-tide-deep border-b border-tide-deep/10 last:border-0; }
+
+  .nav-item { @apply flex items-center gap-2.5 px-4 py-2.5 w-full text-left cursor-pointer rounded-none transition-all text-sm border-0 bg-transparent; }
+  .nav-item:hover { @apply bg-white/10; }
+  .nav-item.active { @apply bg-tide-light/20 text-tide-light; }
+  .nav-label { @apply text-white/75 flex-1; }
+  .nav-item.active .nav-label { @apply text-tide-light; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(11,61,82,0.2); border-radius: 99px; }
