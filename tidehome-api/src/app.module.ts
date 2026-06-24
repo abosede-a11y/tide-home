@@ -35,7 +35,7 @@ export class HealthController {
             type: 'postgres',
             url: databaseUrl,
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
-            synchronize: true,
+           synchronize: !isProduction,
             ssl: isProduction ? { rejectUnauthorized: false } : false,
             logging: false,
           };
@@ -49,7 +49,7 @@ export class HealthController {
           password: config.get('DATABASE_PASSWORD', 'password'),
           database: config.get('DATABASE_NAME', 'tidehome'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: true,
+          synchronize: !isProduction,
           logging: !isProduction,
         };
       },
