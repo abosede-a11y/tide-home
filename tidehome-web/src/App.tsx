@@ -26,14 +26,27 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AccessRoute({ feature, children }: { feature: string; children: React.ReactNode }) {
-  const { canAccess } = useAuth();
-  if (!canAccess(feature)) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="text-5xl mb-4 opacity-25">🔒</div>
-      <h2 className="font-serif text-2xl text-tide-deep mb-2">Access restricted</h2>
-      <p className="text-tide-muted text-sm max-w-xs">You don't have permission to view this section. Contact your administrator.</p>
-    </div>
-  );
+  const { canAccess, permissionsLoading } = useAuth();
+
+  // Wait for permissions to load before deciding
+  if (permissionsLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-tide-muted text-sm">Loading…</div>
+      </div>
+    );
+  }
+
+  if (!canAccess(feature)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="text-5xl mb-4 opacity-25">🔒</div>
+        <h2 className="font-serif text-2xl text-tide-deep mb-2">Access restricted</h2>
+        <p className="text-tide-muted text-sm max-w-xs">You don't have permission to view this section. Contact your administrator.</p>
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }
 

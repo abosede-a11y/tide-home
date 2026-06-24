@@ -16,6 +16,7 @@ interface AuthContextType {
   user: AuthUser | null;
   permissions: Record<string, boolean>;
   loading: boolean;
+   permissionsLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   canAccess: (feature: string) => boolean;
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('tidehome_token');
@@ -36,9 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const u = JSON.parse(stored);
         setUser(u);
         loadPermissions(u.role);
-      } catch { setLoading(false); }
+      } catch { 
+        setLoading(false); 
+        setPermissionsLoading(false);
+      }
     } else {
       setLoading(false);
+      setPermissionsLoading(false);
     }
   }, []);
 
@@ -46,8 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const perms = await permissionsApi.getMyAccess();
       setPermissions(perms);
-    } catch { /* permissions failed, use empty */ }
-    finally { setLoading(false); }
+    } catch { 
+      // permissions failed, use empty
+    } finally { 
+      setLoading(false);
+      setPermissionsLoading(false);
+    }
   }
 
   async function login(email: string, password: string) {
@@ -73,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, permissions, loading, login, logout, canAccess }}>
+    <AuthContext.Provider value={{ user, permissions, loading, permissionsLoading, login, logout, canAccess }}>
       {children}
     </AuthContext.Provider>
   );
