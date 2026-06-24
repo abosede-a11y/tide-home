@@ -8,6 +8,7 @@ import { ResidentsPage, PaymentsPage, AppointmentsPage } from './pages/portal/Re
 import { ProfilePage, UsersPage, PermissionsPage, BlogAdminPage, FaqAdminPage, ChatPage } from './pages/portal/PortalPages';
 import LandingPage from './pages/public/LandingPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/" element={<LandingPage/>}/>
         <Route path="/login" element={<LoginPage/>}/>
         <Route path="/forgot-password" element={<ForgotPasswordPage/>}/>
+        <Route path="/reset-password" element={<ResetPasswordPage/>}/>
 
         {/* Portal (protected) */}
         <Route path="/portal" element={<ProtectedRoute><PortalLayout/></ProtectedRoute>}>
