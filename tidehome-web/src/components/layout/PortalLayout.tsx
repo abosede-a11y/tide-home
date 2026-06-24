@@ -28,6 +28,7 @@ const ALL_NAV: NavItem[] = [
   { key: 'faqadmin',     label: 'FAQ Manager',       icon: <HelpCircle size={16}/>,      path: '/portal/faq-admin',    section: 'Content', roles: ['superadmin','admin'] },
   { key: 'users',        label: 'User Accounts',     icon: <UserCog size={16}/>,         path: '/portal/users',        section: 'Admin',   roles: ['superadmin','admin'] },
   { key: 'permissions',  label: 'Permissions',       icon: <Shield size={16}/>,          path: '/portal/permissions',  section: 'Admin',   roles: ['superadmin'] },
+  { key: 'contacts', label: 'Contact Messages', icon: <Mail size={16}/>, path: '/portal/contacts', section: 'Admin', roles: ['superadmin','admin'] },
 ];
 
 export default function PortalLayout() {

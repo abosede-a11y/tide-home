@@ -17,3 +17,11 @@ export declare class RegisterAdminDto {
     password: string;
     registrationKey: string;
 }
+export declare class ContactDto {
+    firstName: string;
+    lastName?: string;
+    email: string;
+    phone?: string;
+    subject?: string;
+    message: string;
+}

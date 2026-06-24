@@ -5,10 +5,18 @@ import PortalLayout from './components/layout/PortalLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/portal/DashboardPage';
 import { ResidentsPage, PaymentsPage, AppointmentsPage } from './pages/portal/ResidentsPaymentsAppointments';
-import { ProfilePage, UsersPage, PermissionsPage, BlogAdminPage, FaqAdminPage, ChatPage } from './pages/portal/PortalPages';
+import { ProfilePage, UsersPage, PermissionsPage, BlogAdminPage, FaqAdminPage, ChatPage, ContactMessagesPage } from './pages/portal/PortalPages';
 import LandingPage from './pages/public/LandingPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import PublicLayout from './components/layout/PublicLayout';
+import HomePage from './pages/public/HomePage';
+import AboutPage from './pages/public/AboutPage';
+import ServicesPage from './pages/public/ServicesPage';
+import FacilitiesPage from './pages/public/FacilitiesPage';
+import PackagesPage from './pages/public/PackagesPage';
+import FAQPage from './pages/public/FAQPage';
+import ContactPage from './pages/public/ContactPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -33,11 +41,21 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Public website */}
-        <Route path="/" element={<LandingPage/>}/>
-        <Route path="/login" element={<LoginPage/>}/>
-        <Route path="/forgot-password" element={<ForgotPasswordPage/>}/>
-        <Route path="/reset-password" element={<ResetPasswordPage/>}/>
+       {/* Public website */}
+        <Route element={<PublicLayout/>}>
+          <Route path="/" element={<HomePage/>}/>
+          <Route path="/about" element={<AboutPage/>}/>
+          <Route path="/services" element={<ServicesPage/>}/>
+          <Route path="/facilities" element={<FacilitiesPage/>}/>
+          <Route path="/packages" element={<PackagesPage/>}/>
+          <Route path="/faq" element={<FAQPage/>}/>
+          <Route path="/contact" element={<ContactPage/>}/>
+        </Route>
+
+        {/* Auth */}
+          <Route path="/login" element={<LoginPage/>}/>
+          <Route path="/forgot-password" element={<ForgotPasswordPage/>}/>
+          <Route path="/reset-password" element={<ResetPasswordPage/>}/>
 
         {/* Portal (protected) */}
         <Route path="/portal" element={<ProtectedRoute><PortalLayout/></ProtectedRoute>}>
@@ -53,6 +71,7 @@ export default function App() {
           <Route path="faq-admin" element={<AccessRoute feature="faqadmin"><FaqAdminPage/></AccessRoute>}/>
           <Route path="users" element={<AccessRoute feature="users"><UsersPage/></AccessRoute>}/>
           <Route path="permissions" element={<AccessRoute feature="permissions"><PermissionsPage/></AccessRoute>}/>
+          <Route path="contacts" element={<AccessRoute feature="contacts"><ContactMessagesPage/></AccessRoute>}/>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace/>}/>

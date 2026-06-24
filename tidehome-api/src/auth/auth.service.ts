@@ -5,8 +5,10 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../common/mail.service';
-import { LoginDto, ForgotPasswordDto, ResetPasswordDto, RegisterAdminDto } from './auth.dto';
+import { LoginDto, ForgotPasswordDto, ResetPasswordDto, RegisterAdminDto, ContactDto } from './auth.dto';
 import { UserRole } from '../users/user.entity';
+import { ContactService } from '../contact/contact.service';
+
 
 @Injectable()
 export class AuthService {
@@ -18,6 +20,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private mailService: MailService,
+    private contactService: ContactService
   ) {}
 
   async login(dto: LoginDto) {
@@ -80,7 +83,7 @@ export class AuthService {
     });
     // Send welcome email to newly registered admin
     await this.mailService.sendAdminWelcomeEmail(user.email, user.firstName, user.username || '')
-    
+
     const payload = {
       sub: user.id,
       email: user.email,
@@ -133,5 +136,21 @@ export class AuthService {
 
   async getProfile(userId: string) {
     return this.usersService.findById(userId);
+  }
+
+  async sendContactEmail(dto: ContactDto) {
+  // Save to database
+  await this.contactService.create({
+    firstName: dto.firstName,
+    lastName: dto.lastName,
+    email: dto.email,
+    phone: dto.phone,
+    subject: dto.subject,
+    message: dto.message,
+  });
+
+    // Send emails
+    await this.mailService.sendContactFormEmail(dto);
+    return { message: 'Your message has been received. We will be in touch within 24 hours.' };
   }
 }

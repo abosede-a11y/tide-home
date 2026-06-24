@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
-import { usersApi, permissionsApi, blogApi, faqApi } from '../../services/api';
+import { usersApi, permissionsApi, blogApi, faqApi, contactApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Plus, Edit, Trash2, Send, Phone, Mail } from 'lucide-react';
 import { io } from 'socket.io-client';
@@ -746,6 +746,151 @@ export function ChatPage() {
             />
             <button className="btn btn-primary px-4" onClick={sendMessage}><Send size={15} /></button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CONTACT MESSAGES PAGE ───────────────────────────────────────────────────
+export function ContactMessagesPage() {
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState<any>(null);
+
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ['contact-messages'],
+    queryFn: contactApi.getAll,
+  });
+
+  const markRead = useMutation({
+    mutationFn: (id: string) => contactApi.markRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contact-messages'] }),
+  });
+
+  const markReplied = useMutation({
+    mutationFn: (id: string) => contactApi.markReplied(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['contact-messages'] }); toast.success('Marked as replied'); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => contactApi.delete(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['contact-messages'] }); setSelected(null); toast.success('Message deleted'); },
+  });
+
+  const unread = messages.filter((m: any) => !m.isRead).length;
+
+  const openMessage = (msg: any) => {
+    setSelected(msg);
+    if (!msg.isRead) markRead.mutate(msg.id);
+  };
+
+  if (isLoading) return <div className="text-tide-muted text-sm">Loading messages…</div>;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-serif text-2xl text-tide-deep">Contact Messages</h1>
+          {unread > 0 && (
+            <p className="text-tide-muted text-sm mt-1">
+              <span className="pill pill-red">{unread} unread</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Message list */}
+        <div className="lg:col-span-1 space-y-2">
+          {messages.length === 0 && (
+            <div className="card text-center text-tide-muted py-12">No messages yet</div>
+          )}
+          {messages.map((m: any) => (
+            <div
+              key={m.id}
+              onClick={() => openMessage(m)}
+              className={`card-sm cursor-pointer transition-all hover:border-tide-mid ${
+                selected?.id === m.id ? 'border-tide-mid border-2' : ''
+              } ${!m.isRead ? 'bg-tide-foam/30' : ''}`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <div className="font-medium text-sm text-tide-deep truncate">
+                  {!m.isRead && <span className="inline-block w-2 h-2 bg-tide-light rounded-full mr-1.5 mb-0.5"/>}
+                  {m.firstName} {m.lastName}
+                </div>
+                <div className="text-[10px] text-tide-muted flex-shrink-0">
+                  {new Date(m.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </div>
+              </div>
+              <div className="text-xs text-tide-muted truncate">{m.subject || 'General enquiry'}</div>
+              <div className="text-xs text-tide-muted truncate mt-0.5 opacity-70">{m.message.slice(0, 60)}…</div>
+              <div className="flex gap-1.5 mt-2">
+                {m.isReplied && <span className="pill pill-green text-[10px]">Replied</span>}
+                {!m.isRead && <span className="pill pill-blue text-[10px]">New</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Message detail */}
+        <div className="lg:col-span-2">
+          {!selected ? (
+            <div className="card flex flex-col items-center justify-center py-20 text-center text-tide-muted">
+              <div className="text-4xl mb-3 opacity-30">✉️</div>
+              <p className="text-sm">Select a message to read it</p>
+            </div>
+          ) : (
+            <div className="card">
+              <div className="flex items-start justify-between pb-4 border-b border-tide-deep/10 mb-4">
+                <div>
+                  <h2 className="font-serif text-xl text-tide-deep">{selected.subject || 'General enquiry'}</h2>
+                  <div className="text-xs text-tide-muted mt-1">
+                    From <strong>{selected.firstName} {selected.lastName}</strong> · {new Date(selected.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  {selected.isReplied
+                    ? <span className="pill pill-green">Replied</span>
+                    : <button className="btn btn-sm btn-secondary" onClick={() => markReplied.mutate(selected.id)}>Mark replied</button>
+                  }
+                  <button className="btn btn-sm btn-danger" onClick={() => { if (confirm('Delete this message?')) deleteMutation.mutate(selected.id); }}>
+                    <Trash2 size={12}/>
+                  </button>
+                </div>
+              </div>
+
+              {/* Contact details */}
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                {[
+                  ['Email', selected.email],
+                  ['Phone', selected.phone || '—'],
+                ].map(([label, val]) => (
+                  <div key={label} className="bg-tide-sand rounded-lg px-3 py-2">
+                    <div className="text-[10px] font-semibold text-tide-muted uppercase tracking-wider">{label}</div>
+                    <div className="text-sm text-tide-deep font-medium mt-0.5">{val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Message body */}
+              <div className="bg-tide-sand rounded-xl p-4 mb-5">
+                <div className="text-[10px] font-semibold text-tide-muted uppercase tracking-wider mb-2">Message</div>
+                <p className="text-sm text-tide-deep leading-relaxed whitespace-pre-wrap">{selected.message}</p>
+              </div>
+        
+              {/* Reply button */}
+              
+               <a href={`mailto:${selected.email}?subject=Re: ${selected.subject || 'Your Tide Home enquiry'}`}
+                className="btn btn-primary"
+                onClick={() => markReplied.mutate(selected.id)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Mail size={14}/>
+                <span>Reply via email</span>
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

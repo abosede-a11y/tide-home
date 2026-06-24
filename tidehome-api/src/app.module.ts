@@ -11,6 +11,7 @@ import { BlogModule } from './blog/blog.module';
 import { FaqModule } from './faq/faq.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { ChatModule } from './chat/chat.module';
+import { ContactModule } from './contact/contact.module';
 
 @Controller()
 export class HealthController {
@@ -64,6 +65,7 @@ export class HealthController {
     FaqModule,
     PermissionsModule,
     ChatModule,
+    ContactModule,
   ],
   controllers: [HealthController],
 })

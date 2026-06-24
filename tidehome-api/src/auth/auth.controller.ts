@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, Param, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, ForgotPasswordDto, ResetPasswordDto, RegisterAdminDto } from './auth.dto';
+import { LoginDto, ForgotPasswordDto, ResetPasswordDto, RegisterAdminDto, ContactDto } from './auth.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @ApiTags('Auth')
@@ -51,4 +51,11 @@ export class AuthController {
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
+
+  @Post('contact')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Submit contact form' })
+  contact(@Body() dto: ContactDto) {
+    return this.authService.sendContactEmail(dto);
+}
 }

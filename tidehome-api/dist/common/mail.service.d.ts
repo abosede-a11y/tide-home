@@ -9,4 +9,12 @@ export declare class MailService {
     sendAdminWelcomeEmail(email: string, firstName: string, username: string): Promise<void>;
     sendPasswordReset(email: string, firstName: string, token: string): Promise<void>;
     private send;
+    sendContactFormEmail(data: {
+        firstName: string;
+        lastName?: string;
+        email: string;
+        phone?: string;
+        subject?: string;
+        message: string;
+    }): Promise<void>;
 }

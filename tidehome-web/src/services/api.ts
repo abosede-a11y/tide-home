@@ -118,4 +118,14 @@ export const permissionsApi = {
   update: (data: any) => api.patch('/permissions', data).then(r => r.data),
 };
 
+// ── ContactForm ───────────────────────────────────────
+export const contactApi = {
+  submit: (data: any) => api.post('/contact', data).then(r => r.data),
+  getAll: () => api.get('/contact').then(r => r.data),
+  getUnreadCount: () => api.get('/contact/unread-count').then(r => r.data),
+  markRead: (id: string) => api.patch(`/contact/${id}/read`).then(r => r.data),
+  markReplied: (id: string) => api.patch(`/contact/${id}/replied`).then(r => r.data),
+  delete: (id: string) => api.delete(`/contact/${id}`).then(r => r.data),
+};
+
 export default api;

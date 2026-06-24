@@ -23,6 +23,7 @@ const blog_module_1 = require("./blog/blog.module");
 const faq_module_1 = require("./faq/faq.module");
 const permissions_module_1 = require("./permissions/permissions.module");
 const chat_module_1 = require("./chat/chat.module");
+const contact_module_1 = require("./contact/contact.module");
 let HealthController = class HealthController {
     health() {
         return { status: 'ok', timestamp: new Date().toISOString() };
@@ -84,6 +85,7 @@ exports.AppModule = AppModule = __decorate([
             faq_module_1.FaqModule,
             permissions_module_1.PermissionsModule,
             chat_module_1.ChatModule,
+            contact_module_1.ContactModule,
         ],
         controllers: [HealthController],
     })

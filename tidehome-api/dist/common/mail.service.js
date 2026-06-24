@@ -109,6 +109,50 @@ let MailService = MailService_1 = class MailService {
             this.logger.error(`Failed to send email to ${to}: ${err?.response?.body?.errors?.[0]?.message || err.message}`);
         }
     }
+    async sendContactFormEmail(data) {
+        const adminEmail = this.config.get('ADMIN_EMAIL', 'admin@tidehome.co.uk');
+        const subject = `New contact form submission — ${data.subject || 'General enquiry'}`;
+        const html = `
+    <div style="font-family:Inter,sans-serif;max-width:540px;margin:0 auto;padding:2rem">
+      <div style="background:#0B3D52;padding:1.5rem;border-radius:12px 12px 0 0;text-align:center">
+        <h1 style="color:white;font-size:1.5rem;margin:0">TideHome</h1>
+        <p style="color:rgba(255,255,255,0.7);font-size:0.85rem;margin:6px 0 0">New contact form submission</p>
+      </div>
+      <div style="background:#f7f3ee;padding:2rem;border-radius:0 0 12px 12px">
+        <h2 style="color:#0B3D52;margin-top:0">New enquiry received</h2>
+        <div style="background:white;border:1px solid rgba(11,61,82,0.12);border-radius:8px;padding:1.25rem;margin-bottom:1.5rem">
+          <p style="margin:0 0 8px;font-size:0.85rem;color:#5A7A8A"><strong>Name:</strong> ${data.firstName} ${data.lastName || ''}</p>
+          <p style="margin:0 0 8px;font-size:0.85rem;color:#5A7A8A"><strong>Email:</strong> <a href="mailto:${data.email}" style="color:#1A6B8A">${data.email}</a></p>
+          ${data.phone ? `<p style="margin:0 0 8px;font-size:0.85rem;color:#5A7A8A"><strong>Phone:</strong> ${data.phone}</p>` : ''}
+          ${data.subject ? `<p style="margin:0 0 8px;font-size:0.85rem;color:#5A7A8A"><strong>Subject:</strong> ${data.subject}</p>` : ''}
+          <p style="margin:0;font-size:0.85rem;color:#5A7A8A"><strong>Message:</strong></p>
+          <p style="margin:8px 0 0;font-size:0.875rem;color:#0B3D52;line-height:1.7;background:#f7f3ee;padding:0.75rem;border-radius:6px">${data.message}</p>
+        </div>
+        <a href="mailto:${data.email}?subject=Re: ${data.subject || 'Your Tide Home enquiry'}" 
+           style="display:inline-block;background:#0B3D52;color:white;padding:0.75rem 1.75rem;border-radius:8px;text-decoration:none;font-weight:600">
+          Reply to ${data.firstName} →
+        </a>
+        <p style="font-size:0.75rem;color:#5A7A8A;margin-top:1.5rem">Submitted at ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' })}</p>
+      </div>
+    </div>`;
+        await this.send(adminEmail, subject, html);
+        const confirmHtml = `
+    <div style="font-family:Inter,sans-serif;max-width:540px;margin:0 auto;padding:2rem">
+      <div style="background:#0B3D52;padding:1.5rem;border-radius:12px 12px 0 0;text-align:center">
+        <h1 style="color:white;font-size:1.5rem;margin:0">TideHome</h1>
+      </div>
+      <div style="background:#f7f3ee;padding:2rem;border-radius:0 0 12px 12px">
+        <h2 style="color:#0B3D52;margin-top:0">Thanks for getting in touch, ${data.firstName}!</h2>
+        <p style="color:#5A7A8A;line-height:1.7">We've received your message and will get back to you within 24 hours during office hours.</p>
+        <div style="background:white;border:1px solid rgba(11,61,82,0.12);border-radius:8px;padding:1.25rem;margin:1.5rem 0">
+          <p style="margin:0 0 4px;font-size:0.8rem;color:#5A7A8A">Your message:</p>
+          <p style="margin:0;font-size:0.875rem;color:#0B3D52;line-height:1.7">${data.message}</p>
+        </div>
+        <p style="color:#5A7A8A;font-size:0.875rem">For urgent matters please call our 24/7 support line: <strong>+44 800 123 4567</strong></p>
+      </div>
+    </div>`;
+        await this.send(data.email, 'We received your message — Tide Home', confirmHtml);
+    }
 };
 exports.MailService = MailService;
 exports.MailService = MailService = MailService_1 = __decorate([

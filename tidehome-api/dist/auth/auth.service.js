@@ -18,12 +18,14 @@ const uuid_1 = require("uuid");
 const users_service_1 = require("../users/users.service");
 const mail_service_1 = require("../common/mail.service");
 const user_entity_1 = require("../users/user.entity");
+const contact_service_1 = require("../contact/contact.service");
 let AuthService = class AuthService {
-    constructor(usersService, jwtService, configService, mailService) {
+    constructor(usersService, jwtService, configService, mailService, contactService) {
         this.usersService = usersService;
         this.jwtService = jwtService;
         this.configService = configService;
         this.mailService = mailService;
+        this.contactService = contactService;
         this.resetTokens = new Map();
     }
     async login(dto) {
@@ -121,6 +123,18 @@ let AuthService = class AuthService {
     async getProfile(userId) {
         return this.usersService.findById(userId);
     }
+    async sendContactEmail(dto) {
+        await this.contactService.create({
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            email: dto.email,
+            phone: dto.phone,
+            subject: dto.subject,
+            message: dto.message,
+        });
+        await this.mailService.sendContactFormEmail(dto);
+        return { message: 'Your message has been received. We will be in touch within 24 hours.' };
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
@@ -128,6 +142,7 @@ exports.AuthService = AuthService = __decorate([
     __metadata("design:paramtypes", [users_service_1.UsersService,
         jwt_1.JwtService,
         config_1.ConfigService,
-        mail_service_1.MailService])
+        mail_service_1.MailService,
+        contact_service_1.ContactService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RegisterAdminDto = exports.ResetPasswordDto = exports.ForgotPasswordDto = exports.LoginDto = void 0;
+exports.ContactDto = exports.RegisterAdminDto = exports.ResetPasswordDto = exports.ForgotPasswordDto = exports.LoginDto = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 class LoginDto {
@@ -76,4 +76,34 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], RegisterAdminDto.prototype, "registrationKey", void 0);
+class ContactDto {
+}
+exports.ContactDto = ContactDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ContactDto.prototype, "firstName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ContactDto.prototype, "lastName", void 0);
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], ContactDto.prototype, "email", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ContactDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ContactDto.prototype, "subject", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ContactDto.prototype, "message", void 0);
 //# sourceMappingURL=auth.dto.js.map
