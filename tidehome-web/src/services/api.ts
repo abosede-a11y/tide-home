@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // In production (Vercel), VITE_API_URL points to Render.
 // In development, empty string uses the Vite proxy (/api -> localhost:3001)
-const baseURL = (import.meta.env.VITE_API_URL || '') + '/api';
+const baseURL = ((typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) || '') + '/api';
 
 const api = axios.create({
   baseURL,
@@ -33,8 +33,8 @@ api.interceptors.response.use(
 export const authApi = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }).then(r => r.data),
-  registerAdmin: (data: { firstName: string; lastName: string; email: string; password: string; registrationKey: string }) =>
-    api.post('/auth/register-admin', data).then(r => r.data),
+  registerAdmin: (data: { firstName: string; lastName: string; email: string; username: string; password: string; registrationKey: string }) =>
+  api.post('/auth/register-admin', data).then(r => r.data),
   me: () => api.get('/auth/me').then(r => r.data),
   forgotPassword: (email: string) =>
     api.post('/auth/forgot-password', { email }).then(r => r.data),
