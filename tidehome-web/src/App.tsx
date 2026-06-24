@@ -7,6 +7,7 @@ import DashboardPage from './pages/portal/DashboardPage';
 import { ResidentsPage, PaymentsPage, AppointmentsPage } from './pages/portal/ResidentsPaymentsAppointments';
 import { ProfilePage, UsersPage, PermissionsPage, BlogAdminPage, FaqAdminPage, ChatPage } from './pages/portal/PortalPages';
 import LandingPage from './pages/public/LandingPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -58,44 +59,7 @@ export default function App() {
   );
 }
 
-// Simple forgot password page inline
-function ForgotPasswordPage() {
-  const [email, setEmail] = React.useState('');
-  const [sent, setSent] = React.useState(false);
-  const { authApi: _ } = require('./services/api');
-  const api = require('./services/api');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try { await api.authApi.forgotPassword(email); setSent(true); } catch { setSent(true); }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-tide-sand px-4">
-      <div className="w-full max-w-sm">
-        <div className="font-serif text-2xl text-tide-deep text-center mb-2">TideHome</div>
-        {sent ? (
-          <div className="card text-center">
-            <div className="text-3xl mb-3">📧</div>
-            <h2 className="font-serif text-xl text-tide-deep mb-2">Check your email</h2>
-            <p className="text-tide-muted text-sm mb-4">If that email exists in our system, a reset link has been sent.</p>
-            <a href="/login" className="btn btn-primary w-full justify-center">Back to login</a>
-          </div>
-        ) : (
-          <div className="card">
-            <h2 className="font-serif text-xl text-tide-deep mb-1">Reset password</h2>
-            <p className="text-tide-muted text-sm mb-5">Enter your email address and we'll send you a reset link.</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div><label className="form-label">Email address</label><input type="email" className="form-input" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@tidehome.co.uk"/></div>
-              <button type="submit" className="btn btn-primary w-full justify-center">Send reset link</button>
-            </form>
-            <a href="/login" className="block text-center text-xs text-tide-muted mt-4 hover:text-tide-deep">← Back to login</a>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // Medications page (inline for brevity)
 function MedicationsPage() {
