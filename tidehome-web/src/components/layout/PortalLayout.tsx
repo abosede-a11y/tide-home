@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard, Users, Pill, Calendar, CreditCard, User,
   MessageCircle, FileText, HelpCircle, UserCog, Lock, Shield,
-  Bell, Search, LogOut, Menu, X, Lock as LockIcon,
+  Bell, Search, LogOut, Menu, X, Lock as LockIcon, Mail,
 } from 'lucide-react';
 
 interface NavItem {
