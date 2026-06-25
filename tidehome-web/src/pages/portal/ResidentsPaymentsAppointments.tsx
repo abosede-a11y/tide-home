@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { residentsApi, paymentsApi, appointmentsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Plus, Edit, Trash2, Download, CalendarPlus } from 'lucide-react';
+import { Plus, Edit, Trash2, Download, CalendarPlus, Mail } from 'lucide-react';
 
 const EMPTY_FORM = { firstName:'', lastName:'', dateOfBirth:'', roomNumber:'', floor:'1', carePackage:'Standard Care', medicalHistory:'', allergies:'', emergencyContact:'', emergencyPhone:'', gpName:'', gpPhone:'', guardianUserId:'' };
 
@@ -139,32 +139,92 @@ export function ResidentsPage() {
 // PaymentsPage
 export function PaymentsPage() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const isAdminPlus = ['superadmin','admin'].includes(user?.role || '');
+  const [editPayment, setEditPayment] = useState<any>(null);
+  const [receiptPayment, setReceiptPayment] = useState<any>(null);
+  const [sendReceiptPayment, setSendReceiptPayment] = useState<any>(null);
+  const [receiptEmail, setReceiptEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [editForm, setEditForm] = useState<any>({});
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: isAdminPlus ? paymentsApi.getAll : () => paymentsApi.getByResident(user?.linkedResidentId || ''),
   });
-  const { data: summary } = useQuery({ queryKey: ['payment-summary'], queryFn: paymentsApi.getSummary, enabled: isAdminPlus });
+  const { data: summary } = useQuery({
+    queryKey: ['payment-summary'],
+    queryFn: paymentsApi.getSummary,
+    enabled: isAdminPlus,
+  });
 
-  const statusClass: Record<string,string> = { paid:'pill-green', overdue:'pill-red', processing:'pill-blue', pending:'pill-amber' };
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: any) => paymentsApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payments'] });
+      qc.invalidateQueries({ queryKey: ['payment-summary'] });
+      setEditPayment(null);
+      toast.success('Payment record updated');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update'),
+  });
+
+  const sendReceiptMutation = useMutation({
+    mutationFn: ({ id, email }: any) => paymentsApi.sendReceipt(id, email),
+    onSuccess: (_, vars) => {
+      setSendReceiptPayment(null);
+      setReceiptEmail('');
+      setEmailError('');
+      toast.success(`Receipt sent to ${vars.email}`);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to send receipt'),
+  });
+
+  const openEdit = (p: any) => {
+    setEditPayment(p);
+    setEditForm({ status: p.status, method: p.method, amount: p.amount, carePackage: p.carePackage, notes: p.notes || '' });
+  };
+
+  const validateEmail = (email: string) => {
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!email) { setEmailError('Email address is required'); return false; }
+    if (!valid) { setEmailError('Please enter a valid email address'); return false; }
+    setEmailError('');
+    return true;
+  };
+
+  const handleSendReceipt = () => {
+    if (!validateEmail(receiptEmail)) return;
+    sendReceiptMutation.mutate({ id: sendReceiptPayment.id, email: receiptEmail });
+  };
 
   const printReceipt = (p: any) => {
-    const w = window.open('','_blank');
+    const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(`<html><head><title>Receipt ${p.receiptNumber}</title></head><body style="font-family:sans-serif;max-width:500px;margin:2rem auto;padding:2rem;border:1px solid #eee;border-radius:12px">
+    w.document.write(`
+      <html><head><title>Receipt ${p.receiptNumber}</title>
+      <style>body{font-family:Inter,sans-serif;max-width:500px;margin:2rem auto;padding:2rem;border:1px solid #eee;border-radius:12px} table{width:100%;border-collapse:collapse;font-size:0.875rem} td{padding:8px 0;border-bottom:1px solid #f0f0f0} .total td{border:none;padding-top:16px;font-weight:700;font-size:1.1rem}</style>
+      </head><body>
       <h2 style="text-align:center;color:#0B3D52">Tide Home</h2>
       <p style="text-align:center;color:#999;font-size:0.85rem">12 Riverside Close, London SE1 7PB</p>
-      <hr/><table style="width:100%;border-collapse:collapse;margin-top:1rem;font-size:0.875rem">
-      <tr><td style="color:#999;padding:6px 0">Receipt no.</td><td style="text-align:right">${p.receiptNumber}</td></tr>
-      <tr><td style="color:#999;padding:6px 0">Resident</td><td style="text-align:right">${p.residentName}</td></tr>
-      <tr><td style="color:#999;padding:6px 0">Package</td><td style="text-align:right">${p.carePackage}</td></tr>
-      <tr><td style="color:#999;padding:6px 0">Method</td><td style="text-align:right">${p.method}</td></tr>
-      <tr><td style="color:#999;padding:6px 0">Date</td><td style="text-align:right">${new Date(p.createdAt).toLocaleDateString('en-GB')}</td></tr>
-      <tr style="border-top:2px solid #eee"><td style="font-weight:600;padding:10px 0">Total paid</td><td style="text-align:right;font-weight:600;font-size:1.1rem">£${Number(p.amount).toLocaleString()}</td></tr>
-      </table></body></html>`);
-    w.document.close(); w.print();
+      <hr/>
+      <table>
+        <tr><td style="color:#999">Receipt no.</td><td style="text-align:right">${p.receiptNumber}</td></tr>
+        <tr><td style="color:#999">Resident</td><td style="text-align:right">${p.residentName}</td></tr>
+        <tr><td style="color:#999">Package</td><td style="text-align:right">${p.carePackage}</td></tr>
+        <tr><td style="color:#999">Method</td><td style="text-align:right">${p.method}</td></tr>
+        <tr><td style="color:#999">Status</td><td style="text-align:right;text-transform:capitalize">${p.status}</td></tr>
+        <tr><td style="color:#999">Date</td><td style="text-align:right">${new Date(p.createdAt).toLocaleDateString('en-GB')}</td></tr>
+        <tr class="total"><td>Total paid</td><td style="text-align:right">£${Number(p.amount).toLocaleString()}</td></tr>
+      </table>
+      <p style="font-size:0.75rem;color:#999;text-align:center;margin-top:2rem">Tide Home Care Services Ltd · hello@tidehome.co.uk</p>
+      </body></html>
+    `);
+    w.document.close();
+    w.print();
   };
+
+  const statusClass: Record<string,string> = { paid:'pill-green', overdue:'pill-red', processing:'pill-blue', pending:'pill-amber' };
 
   if (isLoading) return <div className="text-tide-muted text-sm">Loading payments…</div>;
 
@@ -185,8 +245,14 @@ export function PaymentsPage() {
       <div className="table-wrap">
         <table className="w-full">
           <thead><tr>
-            <th className="th">Receipt</th><th className="th">Resident</th><th className="th">Package</th>
-            <th className="th">Amount</th><th className="th">Method</th><th className="th">Status</th><th className="th">Actions</th>
+            <th className="th">Receipt</th>
+            <th className="th">Resident</th>
+            <th className="th">Package</th>
+            <th className="th">Amount</th>
+            <th className="th">Method</th>
+            <th className="th">Status</th>
+            <th className="th">Date</th>
+            <th className="th">Actions</th>
           </tr></thead>
           <tbody>
             {payments.map((p: any) => (
@@ -195,17 +261,155 @@ export function PaymentsPage() {
                 <td className="td font-medium">{p.residentName}</td>
                 <td className="td">{p.carePackage}</td>
                 <td className="td font-semibold">£{Number(p.amount).toLocaleString()}</td>
-                <td className="td">{p.method}</td>
+                <td className="td text-xs">{p.method}</td>
                 <td className="td"><span className={`pill ${statusClass[p.status] || 'pill-gray'}`}>{p.status}</span></td>
+                <td className="td text-xs text-tide-muted">{new Date(p.createdAt).toLocaleDateString('en-GB')}</td>
                 <td className="td">
-                  <button className="btn btn-sm btn-secondary" onClick={() => printReceipt(p)}><Download size={12}/>Receipt</button>
+                  <div className="flex gap-1.5 flex-wrap">
+                    <button className="btn btn-sm btn-secondary" onClick={() => printReceipt(p)}>
+                      <Download size={12}/>Print
+                    </button>
+                    <button className="btn btn-sm btn-secondary" onClick={() => { setSendReceiptPayment(p); setReceiptEmail(''); setEmailError(''); }}>
+                      <Mail size={12}/>Email
+                    </button>
+                    {isAdminPlus && (
+                      <button className="btn btn-sm btn-secondary" onClick={() => openEdit(p)}>
+                        <Edit size={12}/>Update
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
-            {payments.length === 0 && <tr><td colSpan={7} className="td text-center text-tide-muted py-8">No payment records found</td></tr>}
+            {payments.length === 0 && (
+              <tr><td colSpan={8} className="td text-center text-tide-muted py-8">No payment records found</td></tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* ── UPDATE PAYMENT MODAL ── */}
+      {editPayment && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="px-6 py-4 border-b border-tide-deep/10 flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-xl text-tide-deep">Update payment record</h3>
+                <div className="text-xs text-tide-muted mt-0.5">Receipt: {editPayment.receiptNumber}</div>
+              </div>
+              <button onClick={() => setEditPayment(null)} className="text-tide-muted text-xl">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="form-label">Payment status</label>
+                <select className="form-input" value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}>
+                  <option value="paid">Paid</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Payment method</label>
+                <select className="form-input" value={editForm.method} onChange={e => setEditForm({...editForm, method: e.target.value})}>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Direct Debit">Direct Debit</option>
+                  <option value="Card">Card</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Amount (£)</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={editForm.amount}
+                  onChange={e => setEditForm({...editForm, amount: parseFloat(e.target.value)})}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <label className="form-label">Care package</label>
+                <select className="form-input" value={editForm.carePackage} onChange={e => setEditForm({...editForm, carePackage: e.target.value})}>
+                  <option>Standard Care</option>
+                  <option>Enhanced Care</option>
+                  <option>Premium Care</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Notes</label>
+                <textarea
+                  className="form-input"
+                  rows={2}
+                  value={editForm.notes}
+                  onChange={e => setEditForm({...editForm, notes: e.target.value})}
+                  placeholder="Add a note about this update…"
+                />
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                ⚠️ All changes are logged automatically for audit purposes.
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-tide-deep/10 flex justify-end gap-3">
+              <button className="btn btn-secondary" onClick={() => setEditPayment(null)}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                onClick={() => updateMutation.mutate({ id: editPayment.id, data: editForm })}
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SEND RECEIPT MODAL ── */}
+      {sendReceiptPayment && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+            <div className="px-6 py-4 border-b border-tide-deep/10 flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-xl text-tide-deep">Send receipt via email</h3>
+                <div className="text-xs text-tide-muted mt-0.5">{sendReceiptPayment.receiptNumber} · £{Number(sendReceiptPayment.amount).toLocaleString()}</div>
+              </div>
+              <button onClick={() => setSendReceiptPayment(null)} className="text-tide-muted text-xl">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="form-label">Recipient email address</label>
+                <input
+                  type="email"
+                  className={`form-input ${emailError ? 'border-red-400 focus:border-red-400' : ''}`}
+                  placeholder="guardian@example.com"
+                  value={receiptEmail}
+                  onChange={e => { setReceiptEmail(e.target.value); if (emailError) validateEmail(e.target.value); }}
+                  onBlur={() => validateEmail(receiptEmail)}
+                  autoFocus
+                />
+                {emailError && (
+                  <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                    ✗ {emailError}
+                  </p>
+                )}
+              </div>
+              <div className="bg-tide-foam rounded-lg p-3 text-xs text-tide-mid">
+                📧 A formatted receipt will be sent to this email address from Tide Home.
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-tide-deep/10 flex justify-end gap-3">
+              <button className="btn btn-secondary" onClick={() => { setSendReceiptPayment(null); setEmailError(''); }}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSendReceipt}
+                disabled={sendReceiptMutation.isPending}
+              >
+                {sendReceiptMutation.isPending ? 'Sending…' : 'Send receipt'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -154,4 +154,57 @@ export class MailService {
   await this.send(data.email, 'We received your message — Tide Home', confirmHtml);
 }
 
+async sendPaymentReceipt(to: string, payment: any) {
+  const subject = `Tide Home — Payment Receipt ${payment.receiptNumber}`;
+  const html = `
+    <div style="font-family:Inter,sans-serif;max-width:540px;margin:0 auto;padding:2rem">
+      <div style="background:#0B3D52;padding:1.5rem;border-radius:12px 12px 0 0;text-align:center">
+        <h1 style="color:white;font-size:1.5rem;margin:0">TideHome</h1>
+        <p style="color:rgba(255,255,255,0.7);font-size:0.85rem;margin:6px 0 0">Payment Receipt</p>
+      </div>
+      <div style="background:#f7f3ee;padding:2rem;border-radius:0 0 12px 12px">
+        <h2 style="color:#0B3D52;margin-top:0">Payment Receipt</h2>
+        <p style="color:#5A7A8A;font-size:0.875rem">Thank you for your payment. Please find your receipt details below.</p>
+        <div style="background:white;border:1px solid rgba(11,61,82,0.12);border-radius:8px;padding:1.25rem;margin:1.5rem 0">
+          <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 0;color:#5A7A8A">Receipt number</td>
+              <td style="padding:8px 0;text-align:right;font-weight:600;color:#0B3D52">${payment.receiptNumber}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 0;color:#5A7A8A">Resident</td>
+              <td style="padding:8px 0;text-align:right;color:#0B3D52">${payment.residentName}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 0;color:#5A7A8A">Care package</td>
+              <td style="padding:8px 0;text-align:right;color:#0B3D52">${payment.carePackage}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 0;color:#5A7A8A">Payment method</td>
+              <td style="padding:8px 0;text-align:right;color:#0B3D52">${payment.method}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 0;color:#5A7A8A">Date</td>
+              <td style="padding:8px 0;text-align:right;color:#0B3D52">${new Date(payment.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 0;color:#5A7A8A">Status</td>
+              <td style="padding:8px 0;text-align:right;color:#0B3D52;text-transform:capitalize">${payment.status}</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 0 0;color:#0B3D52;font-weight:600;font-size:1rem">Total amount</td>
+              <td style="padding:12px 0 0;text-align:right;color:#0B3D52;font-weight:700;font-size:1.25rem">£${Number(payment.amount).toLocaleString()}</td>
+            </tr>
+          </table>
+        </div>
+        <p style="font-size:0.75rem;color:#5A7A8A;margin-top:1.5rem">
+          Tide Home Care Services Ltd · 12 Riverside Close, London SE1 7PB<br/>
+          Tel: +44 20 7946 0823 · hello@tidehome.co.uk
+        </p>
+        <p style="font-size:0.75rem;color:#5A7A8A;margin-top:0.5rem">If you have any questions about this receipt, please contact us.</p>
+      </div>
+    </div>`;
+  await this.send(to, subject, html);
+}
+
 }

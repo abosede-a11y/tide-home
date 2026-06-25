@@ -91,6 +91,7 @@ export const paymentsApi = {
   getReceipt: (id: string) => api.get(`/payments/${id}/receipt`).then(r => r.data),
   create: (data: any) => api.post('/payments', data).then(r => r.data),
   update: (id: string, data: any) => api.patch(`/payments/${id}`, data).then(r => r.data),
+  sendReceipt: (id: string, email: string) => api.post(`/payments/${id}/send-receipt`, { email }).then(r => r.data),
 };
 
 // ── BLOG ──────────────────────────────────────────────
@@ -127,5 +128,8 @@ export const contactApi = {
   markReplied: (id: string) => api.patch(`/contact/${id}/replied`).then(r => r.data),
   delete: (id: string) => api.delete(`/contact/${id}`).then(r => r.data),
 };
+
+
+
 
 export default api;
