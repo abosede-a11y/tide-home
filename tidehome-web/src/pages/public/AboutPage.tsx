@@ -58,14 +58,14 @@ export default function AboutPage() {
             <h2 className="font-serif text-3xl text-tide-deep mb-8">The people behind Tide Home</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
               {[
-                ['AO','Dr. Ada Okafor','Medical Director','Over 20 years of clinical experience in geriatric medicine.'],
-                ['JE','James Eze','Head of Care','Specialist in complex care and multidisciplinary team leadership.'],
-                ['FN','Florence Nwosu','Lead Nurse','Registered nurse with expertise in dementia and palliative care.'],
-                ['BI','Beatrice Ibeh','Resident Liaison','Dedicated to keeping families informed and connected.'],
-                ['TO','Dr. Tunde Obi','Physiotherapist','Leads our rehabilitation programme with a focus on mobility.'],
+                ['AO','Dr. Amada Smith','Medical Director','Over 20 years of clinical experience in geriatric medicine.'],
+                ['JE','James Henry','Head of Care','Specialist in complex care and multidisciplinary team leadership.'],
+                ['FN','Florence Philip','Lead Nurse','Registered nurse with expertise in dementia and palliative care.'],
+                ['BI','Beatrice James','Resident Liaison','Dedicated to keeping families informed and connected.'],
+                ['TO','Dr. Samuel Hendrick','Physiotherapist','Leads our rehabilitation programme with a focus on mobility.'],
                 ['KA','Kemi Adesanya','Social Worker','Supports residents and families through care transitions.'],
-                ['EO','Emmanuel Okonkwo','Activities Coordinator','Creates engaging programmes that enrich daily life.'],
-                ['NA','Ngozi Adeyemi','Nutritionist','Ensures every resident receives personalised dietary support.'],
+                ['EO','Manuel Richard','Activities Coordinator','Creates engaging programmes that enrich daily life.'],
+                ['NA','Noah Khan','Nutritionist','Ensures every resident receives personalised dietary support.'],
               ].map(([initials, name, role, bio]) => (
                 <div key={name as string} className="card text-center">
                   <div className="w-16 h-16 rounded-full bg-tide-foam flex items-center justify-center font-serif text-xl text-tide-deep mx-auto mb-3">
