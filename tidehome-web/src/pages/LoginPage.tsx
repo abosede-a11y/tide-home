@@ -170,7 +170,7 @@ export default function LoginPage() {
           {/* ── LOGIN ── */}
           {tab === 'login' && (
             <>
-              <div className="font-serif text-2xl text-tide-deep mb-1">Welcome back Team!</div>
+              <div className="font-serif text-2xl text-tide-deep mb-1">Welcome back</div>
               <p className="text-tide-muted text-sm mb-7">Sign in to your Tide Home account</p>
 
               <form onSubmit={handleLogin} className="space-y-4">
