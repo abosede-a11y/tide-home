@@ -1,4 +1,4 @@
-import { PaymentsService, CreatePaymentDto, UpdatePaymentDto } from './payments.service';
+import { PaymentsService, CreatePaymentDto, UpdatePaymentDto, SendReceiptDto } from './payments.service';
 export declare class PaymentsController {
     private service;
     constructor(service: PaymentsService);
@@ -12,5 +12,8 @@ export declare class PaymentsController {
     findByResident(id: string): Promise<import("./payment.entity").Payment[]>;
     getReceipt(id: string): Promise<import("./payment.entity").Payment>;
     create(dto: CreatePaymentDto, req: any): Promise<import("./payment.entity").Payment>;
-    update(id: string, dto: UpdatePaymentDto): Promise<import("./payment.entity").Payment>;
+    update(id: string, dto: UpdatePaymentDto, req: any): Promise<import("./payment.entity").Payment>;
+    sendReceipt(id: string, dto: SendReceiptDto): Promise<{
+        message: string;
+    }>;
 }

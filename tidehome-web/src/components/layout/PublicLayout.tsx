@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import LiveChatWidget from '../public/LiveChatWidget';
 import { Menu, X } from 'lucide-react';
 
 export default function PublicLayout() {
@@ -137,6 +138,7 @@ export default function PublicLayout() {
           </div>
         </div>
       </footer>
+      <LiveChatWidget />
     </div>
   );
 }

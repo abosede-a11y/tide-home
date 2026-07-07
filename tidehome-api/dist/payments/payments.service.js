@@ -12,13 +12,14 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PaymentsService = exports.UpdatePaymentDto = exports.CreatePaymentDto = void 0;
+exports.PaymentsService = exports.SendReceiptDto = exports.UpdatePaymentDto = exports.CreatePaymentDto = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
 const payment_entity_1 = require("./payment.entity");
+const mail_service_1 = require("../common/mail.service");
 class CreatePaymentDto {
 }
 exports.CreatePaymentDto = CreatePaymentDto;
@@ -65,12 +66,39 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(payment_entity_1.PaymentMethod),
+    __metadata("design:type", String)
+], UpdatePaymentDto.prototype, "method", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdatePaymentDto.prototype, "amount", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdatePaymentDto.prototype, "carePackage", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdatePaymentDto.prototype, "notes", void 0);
+class SendReceiptDto {
+}
+exports.SendReceiptDto = SendReceiptDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsEmail)({}, { message: 'Please enter a valid email address' }),
+    __metadata("design:type", String)
+], SendReceiptDto.prototype, "email", void 0);
 let PaymentsService = class PaymentsService {
-    constructor(repo) {
+    constructor(repo, mailService) {
         this.repo = repo;
+        this.mailService = mailService;
     }
     findAll() {
         return this.repo.find({ order: { createdAt: 'DESC' } });
@@ -89,10 +117,24 @@ let PaymentsService = class PaymentsService {
         const p = this.repo.create({ ...dto, receiptNumber, recordedById });
         return this.repo.save(p);
     }
-    async update(id, dto) {
+    async update(id, dto, updatedById) {
         const p = await this.findById(id);
+        const before = { status: p.status, method: p.method, amount: p.amount, notes: p.notes };
         Object.assign(p, dto);
+        const auditEntry = `\n[Updated ${new Date().toLocaleString('en-GB')} by user ${updatedById}]: ` +
+            Object.entries(dto)
+                .filter(([k, v]) => v !== undefined && before[k] !== v)
+                .map(([k, v]) => `${k}: ${before[k]} → ${v}`)
+                .join(', ');
+        if (auditEntry.trim().length > 20) {
+            p.notes = (p.notes || '') + auditEntry;
+        }
         return this.repo.save(p);
+    }
+    async sendReceipt(id, dto) {
+        const p = await this.findById(id);
+        await this.mailService.sendPaymentReceipt(dto.email, p);
+        return { message: `Receipt sent to ${dto.email}` };
     }
     async getSummary() {
         const payments = await this.repo.find();
@@ -106,6 +148,7 @@ exports.PaymentsService = PaymentsService;
 exports.PaymentsService = PaymentsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(payment_entity_1.Payment)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        mail_service_1.MailService])
 ], PaymentsService);
 //# sourceMappingURL=payments.service.js.map

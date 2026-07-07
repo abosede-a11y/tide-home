@@ -17,4 +17,5 @@ export declare class MailService {
         subject?: string;
         message: string;
     }): Promise<void>;
+    sendPaymentReceipt(to: string, payment: any): Promise<void>;
 }

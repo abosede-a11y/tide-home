@@ -31,15 +31,17 @@ let PaymentsController = class PaymentsController {
     create(dto, req) {
         return this.service.create(dto, req.user.id);
     }
-    update(id, dto) {
-        return this.service.update(id, dto);
+    update(id, dto, req) {
+        return this.service.update(id, dto, req.user.id);
+    }
+    sendReceipt(id, dto) {
+        return this.service.sendReceipt(id, dto);
     }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
     (0, common_1.Get)(),
     (0, roles_decorator_1.Roles)(user_entity_1.UserRole.SUPER_ADMIN, user_entity_1.UserRole.ADMIN),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all payments' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -47,14 +49,12 @@ __decorate([
 __decorate([
     (0, common_1.Get)('summary'),
     (0, roles_decorator_1.Roles)(user_entity_1.UserRole.SUPER_ADMIN, user_entity_1.UserRole.ADMIN),
-    (0, swagger_1.ApiOperation)({ summary: 'Get payment summary totals' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], PaymentsController.prototype, "getSummary", null);
 __decorate([
     (0, common_1.Get)('resident/:residentId'),
-    (0, swagger_1.ApiOperation)({ summary: 'Payments for a resident' }),
     __param(0, (0, common_1.Param)('residentId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -62,7 +62,6 @@ __decorate([
 ], PaymentsController.prototype, "findByResident", null);
 __decorate([
     (0, common_1.Get)(':id/receipt'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get payment receipt' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -71,7 +70,6 @@ __decorate([
 __decorate([
     (0, common_1.Post)(),
     (0, roles_decorator_1.Roles)(user_entity_1.UserRole.SUPER_ADMIN, user_entity_1.UserRole.ADMIN),
-    (0, swagger_1.ApiOperation)({ summary: 'Record a payment' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -81,13 +79,23 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id'),
     (0, roles_decorator_1.Roles)(user_entity_1.UserRole.SUPER_ADMIN, user_entity_1.UserRole.ADMIN),
-    (0, swagger_1.ApiOperation)({ summary: 'Update payment status' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, payments_service_1.UpdatePaymentDto, Object]),
+    __metadata("design:returntype", void 0)
+], PaymentsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Post)(':id/send-receipt'),
+    (0, roles_decorator_1.Roles)(user_entity_1.UserRole.SUPER_ADMIN, user_entity_1.UserRole.ADMIN),
+    (0, swagger_1.ApiOperation)({ summary: 'Send receipt to an email address' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, payments_service_1.UpdatePaymentDto]),
+    __metadata("design:paramtypes", [String, payments_service_1.SendReceiptDto]),
     __metadata("design:returntype", void 0)
-], PaymentsController.prototype, "update", null);
+], PaymentsController.prototype, "sendReceipt", null);
 exports.PaymentsController = PaymentsController = __decorate([
     (0, swagger_1.ApiTags)('Payments'),
     (0, swagger_1.ApiBearerAuth)(),

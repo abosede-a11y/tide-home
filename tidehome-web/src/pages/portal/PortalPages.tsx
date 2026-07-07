@@ -658,93 +658,271 @@ export function FaqAdminPage() {
 // ─── CHAT PAGE ────────────────────────────────────────────────────────────────
 export function ChatPage() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState([
-    { from: 'support', text: 'Hello! Welcome to Tide Home support. How can we help you today?', time: '09:00' },
-  ]);
+  const [allMessages, setAllMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
+  const [activeGuest, setActiveGuest] = useState<string | null>(null);
+  const [readConversations, setReadConversations] = useState<Set<string>>(new Set());
   const socketRef = React.useRef<any>(null);
   const msgsEnd = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    const socket = io('/chat', { transports: ['websocket'] });
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+    const socket = io(`${apiUrl}/chat`, { transports: ['websocket', 'polling'] });
     socketRef.current = socket;
-    socket.emit('join', { userId: user?.id, userName: `${user?.firstName} ${user?.lastName}` });
-    socket.on('new-message', (msg: any) => {
-      if (msg.from === 'support') {
-        setMessages(m => [...m, { from: 'support', text: msg.text, time: msg.time }]);
+
+    socket.emit('join', {
+      userId: user?.id,
+      userName: `${user?.firstName} ${user?.lastName}`,
+      isGuest: false,
+    });
+
+    socket.on('message-history', (history: any[]) => {
+      if (history.length > 0) {
+        let lastGuestId: string | null = null;
+        const tagged = history.map((msg: any) => {
+          if (msg.from === 'user') lastGuestId = msg.userId;
+          if (msg.from === 'support' && !msg._forGuest && lastGuestId) {
+            return { ...msg, _forGuest: lastGuestId };
+          }
+          return msg;
+        });
+        setAllMessages(tagged);
       }
     });
+
+    socket.on('new-message', (msg: any) => {
+      if (msg.from === 'user') {
+        setAllMessages(m => [...m, msg]);
+        // Mark as unread again if not currently viewing this conversation
+        setReadConversations(prev => {
+          const updated = new Set(prev);
+          updated.delete(msg.userId);
+          return updated;
+        });
+      }
+    });
+
     return () => { socket.disconnect(); };
   }, []);
 
-  React.useEffect(() => { msgsEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  React.useEffect(() => {
+    msgsEnd.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [allMessages, activeGuest]);
+
+  const conversations = React.useMemo(() => {
+    const map = new Map<string, {
+      userId: string;
+      name: string;
+      email?: string;
+      messages: any[];
+      lastTime: string;
+      unread: number;
+    }>();
+
+    allMessages.forEach(msg => {
+      if (msg.from === 'user' && msg.userId) {
+        if (!map.has(msg.userId)) {
+          const label = msg.guestLabel || msg.userName || 'Guest';
+          const parts = label.split(' · ');
+          map.set(msg.userId, {
+            userId: msg.userId,
+            name: parts[0],
+            email: parts[1],
+            messages: [],
+            lastTime: msg.time,
+            unread: 0,
+          });
+        }
+        const conv = map.get(msg.userId)!;
+        conv.messages.push(msg);
+        conv.lastTime = msg.time;
+        if (msg.userId !== activeGuest) {
+          conv.unread++;
+        } else {
+          conv.unread = 0;
+        }
+      } else if (msg.from === 'support' && msg._forGuest) {
+        if (map.has(msg._forGuest)) {
+          map.get(msg._forGuest)!.messages.push(msg);
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }, [allMessages, activeGuest]);
+
+  const activeMessages = React.useMemo(() => {
+    if (!activeGuest) return [];
+    const conv = conversations.find(c => c.userId === activeGuest);
+    return conv?.messages || [];
+  }, [conversations, activeGuest]);
+
+  const activeConv = conversations.find(c => c.userId === activeGuest);
 
   const sendMessage = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !activeGuest) return;
     const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    setMessages(m => [...m, { from: 'user', text: input, time }]);
-    socketRef.current?.emit('send-message', { userId: user?.id, userName: `${user?.firstName} ${user?.lastName}`, text: input });
+    setAllMessages(m => [...m, {
+      id: Date.now().toString(),
+      from: 'support',
+      text: input,
+      time,
+      userName: `${user?.firstName} ${user?.lastName}`,
+      _forGuest: activeGuest,
+    }]);
+    socketRef.current?.emit('support-reply', {
+      targetUserId: activeGuest,
+      text: input,
+      supportName: `${user?.firstName} ${user?.lastName}`,
+    });
     setInput('');
   };
 
   return (
     <div>
       <h1 className="font-serif text-2xl text-tide-deep mb-6">Live Chat & Support</h1>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-3">
-          <div className="card-sm">
-            <h3 className="font-serif text-base text-tide-deep mb-3">Support contacts</h3>
-            {[
-              { icon: <Phone size={16} />, label: '24/7 Support line', val: '+44 800 123 4567' },
-              { icon: <Mail size={16} />, label: 'Support email', val: 'support@tidehome.co.uk' },
-            ].map(({ icon, label, val }) => (
-              <div key={label} className="flex items-start gap-3 p-3 bg-tide-sand rounded-lg mb-2">
-                <span className="text-tide-muted mt-0.5">{icon}</span>
-                <div>
-                  <div className="text-[10px] font-semibold text-tide-muted uppercase tracking-wider">{label}</div>
-                  <div className="text-sm font-medium text-tide-deep">{val}</div>
-                </div>
-              </div>
-            ))}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6" style={{ height: '600px' }}>
+
+        {/* Conversation list */}
+        <div className="lg:col-span-1 card p-0 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-tide-deep/10 flex-shrink-0">
+            <div className="text-sm font-medium text-tide-deep">Conversations</div>
+            <div className="text-[11px] text-tide-muted mt-0.5">{conversations.length} active</div>
           </div>
-          <div className="card-sm">
-            <h3 className="text-sm font-medium text-tide-deep mb-2">Quick topics</h3>
-            {['Payment & billing', 'Login issues', 'Medication enquiry', 'Appointment query', 'Profile change'].map(t => (
-              <button key={t} onClick={() => setInput(`I need help with: ${t}`)} className="w-full text-left text-sm text-tide-mid hover:text-tide-deep py-2 border-b border-tide-deep/5 last:border-0 transition-colors">
-                {t} →
-              </button>
-            ))}
+          <div className="flex-1 overflow-y-auto">
+            {conversations.length === 0 ? (
+              <div className="p-4 text-center text-xs text-tide-muted py-8">
+                No conversations yet.<br/>Messages from visitors will appear here.
+              </div>
+            ) : (
+              conversations.map(conv => (
+                <button
+                  key={conv.userId}
+                  onClick={() => {
+                    setActiveGuest(conv.userId);
+                    setReadConversations(prev => new Set(prev).add(conv.userId));
+                  }}
+                  className={`w-full text-left px-4 py-3 border-b border-tide-deep/5 transition-colors hover:bg-tide-sand/50 ${
+                    activeGuest === conv.userId ? 'bg-tide-foam border-l-2 border-l-tide-mid' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-0.5">
+                    <div className="text-sm font-medium text-tide-deep truncate">{conv.name}</div>
+                    <div className="text-[10px] text-tide-muted flex-shrink-0 ml-1">{conv.lastTime}</div>
+                  </div>
+                  {conv.email && (
+                    <div className="text-[10px] text-tide-muted truncate mb-1">{conv.email}</div>
+                  )}
+                  <div className="text-xs text-tide-muted truncate">
+                    {conv.messages.filter(m => m.from === 'user').slice(-1)[0]?.text || ''}
+                  </div>
+                  {conv.unread > 0 && !readConversations.has(conv.userId) && (
+                    <span className="pill pill-blue text-[10px] mt-1">{conv.unread} new</span>
+                  )}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
-        <div className="lg:col-span-2 card p-0 flex flex-col h-[500px]">
-          <div className="px-4 py-3 border-b border-tide-deep/10">
-            <div className="text-sm font-medium text-tide-deep">Live Chat</div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-[11px] text-tide-muted">Support online</span>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-tide-sand/30">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xs px-3.5 py-2.5 rounded-xl text-sm leading-relaxed ${m.from === 'user' ? 'bg-tide-deep text-white rounded-br-sm' : 'bg-white border border-tide-deep/10 text-tide-deep rounded-bl-sm'}`}>
-                  {m.text}
-                  <div className={`text-[10px] mt-1 ${m.from === 'user' ? 'text-white/50 text-right' : 'text-tide-muted'}`}>{m.time}</div>
+        {/* Chat window */}
+        <div className="lg:col-span-3 card p-0 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-tide-deep/10 flex items-center justify-between flex-shrink-0">
+            {activeConv ? (
+              <div>
+                <div className="text-sm font-medium text-tide-deep">{activeConv.name}</div>
+                <div className="text-[11px] text-tide-muted mt-0.5">
+                  {activeConv.email && <span>{activeConv.email} · </span>}
+                  <span className="text-green-600">● Online</span>
                 </div>
               </div>
-            ))}
-            <div ref={msgsEnd} />
+            ) : (
+              <div>
+                <div className="text-sm font-medium text-tide-deep">Live Support Chat</div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="w-2 h-2 rounded-full bg-green-500"/>
+                  <span className="text-[11px] text-tide-muted">
+                    {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} · Select one to reply
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Quick replies dropdown */}
+            {activeGuest && (
+              <div className="relative group">
+                <button className="btn btn-sm btn-secondary text-xs">Quick replies ▾</button>
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-tide-deep/10 rounded-xl shadow-lg z-10 hidden group-hover:block">
+                  {[
+                    'Thank you for contacting Tide Home!',
+                    "I'll look into that for you right away.",
+                    'Could you please provide more details?',
+                    'Please call +44 800 123 4567 for urgent matters.',
+                    "I'll connect you with the right team member.",
+                  ].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setInput(t)}
+                      className="w-full text-left text-xs text-tide-deep hover:bg-tide-sand px-4 py-2.5 border-b border-tide-deep/5 last:border-0 transition-colors"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="px-4 py-3 border-t border-tide-deep/10 flex gap-2">
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-tide-sand/20">
+            {!activeGuest ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-tide-muted">
+                <div className="text-4xl mb-3 opacity-30">💬</div>
+                <p className="text-sm">Select a conversation from the left to start replying</p>
+              </div>
+            ) : activeMessages.length === 0 ? (
+              <div className="text-center text-tide-muted text-sm py-8">No messages yet</div>
+            ) : (
+              activeMessages.map((m: any, i: number) => (
+                <div key={i} className={`flex ${m.from === 'user' ? 'justify-start' : 'justify-end'}`}>
+                  <div className={`max-w-xs px-3.5 py-2.5 rounded-xl text-sm leading-relaxed ${
+                    m.from === 'user'
+                      ? 'bg-white border border-tide-deep/10 text-tide-deep rounded-bl-sm'
+                      : 'bg-tide-deep text-white rounded-br-sm'
+                  }`}>
+                    {m.from === 'user' && (
+                      <div className="text-[10px] font-semibold text-tide-light mb-1">
+                        {activeConv?.name}
+                      </div>
+                    )}
+                    {m.text}
+                    <div className={`text-[10px] mt-1 ${m.from === 'user' ? 'text-tide-muted' : 'text-white/50 text-right'}`}>
+                      {m.time}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={msgsEnd}/>
+          </div>
+
+          {/* Input */}
+          <div className="px-4 py-3 border-t border-tide-deep/10 flex gap-2 flex-shrink-0">
             <input
               className="form-input flex-1 py-2"
-              placeholder="Type a message…"
+              placeholder={activeGuest ? `Reply to ${activeConv?.name}…` : 'Select a conversation to reply…'}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendMessage()}
+              disabled={!activeGuest}
             />
-            <button className="btn btn-primary px-4" onClick={sendMessage}><Send size={15} /></button>
+            <button
+              className="btn btn-primary px-4"
+              onClick={sendMessage}
+              disabled={!activeGuest || !input.trim()}
+            >
+              <Send size={15}/>
+            </button>
           </div>
         </div>
       </div>

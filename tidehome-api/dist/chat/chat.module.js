@@ -19,6 +19,9 @@ const common_1 = require("@nestjs/common");
 let ChatGateway = class ChatGateway {
     constructor() {
         this.connectedUsers = new Map();
+        this.messageHistory = [];
+        this.guestInfo = new Map();
+        this.autoRepliedSessions = new Set();
     }
     handleConnection(client) {
         console.log(`Chat client connected: ${client.id}`);
@@ -28,34 +31,55 @@ let ChatGateway = class ChatGateway {
             if (value.socketId === client.id)
                 this.connectedUsers.delete(key);
         });
-        console.log(`Chat client disconnected: ${client.id}`);
     }
     handleJoin(data, client) {
         this.connectedUsers.set(data.userId, { socketId: client.id, userName: data.userName });
         client.join(`user-${data.userId}`);
-        client.emit('joined', { message: `Welcome ${data.userName}! Support is available.` });
+        if (data.isGuest) {
+            this.guestInfo.set(data.userId, { name: data.userName, email: data.email });
+        }
+        client.emit('message-history', this.messageHistory);
+        if (!data.isGuest) {
+            client.emit('joined', { message: `Welcome ${data.userName}! You are now in the support chat.` });
+        }
+        else {
+            client.emit('joined', { message: `Welcome ${data.userName}! Support is available.` });
+        }
     }
     handleMessage(data, client) {
-        const userMsg = {
+        const guest = this.guestInfo.get(data.userId);
+        const msg = {
             id: Date.now().toString(),
             from: 'user',
             text: data.text,
             userId: data.userId,
             userName: data.userName,
             time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            isGuest: data.isGuest,
+            guestLabel: data.isGuest
+                ? `${data.userName}${guest?.email ? ' · ' + guest.email : ''}`
+                : null,
         };
-        this.server.emit('new-message', userMsg);
-        setTimeout(() => {
-            const supportMsg = {
-                id: (Date.now() + 1).toString(),
-                from: 'support',
-                text: 'Thank you for your message. A member of our support team will respond shortly. For urgent matters please call +44 800 123 4567.',
-                userId: 'support',
-                userName: 'Tide Home Support',
-                time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-            };
-            client.emit('new-message', supportMsg);
-        }, 1500);
+        this.messageHistory.push(msg);
+        if (this.messageHistory.length > 100)
+            this.messageHistory.shift();
+        client.broadcast.emit('new-message', msg);
+        if (!this.autoRepliedSessions.has(data.userId)) {
+            this.autoRepliedSessions.add(data.userId);
+            setTimeout(() => {
+                const supportMsg = {
+                    id: (Date.now() + 1).toString(),
+                    from: 'support',
+                    text: `Thank you for your message! A member of our support team will respond shortly. For urgent matters please call +44 800 123 4567.`,
+                    userId: 'support',
+                    userName: 'Tide Home Support',
+                    time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                    _forGuest: data.userId,
+                };
+                this.messageHistory.push(supportMsg);
+                client.emit('new-message', supportMsg);
+            }, 1500);
+        }
     }
     handleSupportReply(data, client) {
         const msg = {
@@ -65,7 +89,11 @@ let ChatGateway = class ChatGateway {
             userId: 'support',
             userName: data.supportName,
             time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            _forGuest: data.targetUserId,
         };
+        this.messageHistory.push(msg);
+        if (this.messageHistory.length > 100)
+            this.messageHistory.shift();
         this.server.to(`user-${data.targetUserId}`).emit('new-message', msg);
     }
 };
@@ -100,8 +128,13 @@ __decorate([
 ], ChatGateway.prototype, "handleSupportReply", null);
 exports.ChatGateway = ChatGateway = __decorate([
     (0, websockets_1.WebSocketGateway)({
-        cors: { origin: process.env.FRONTEND_URL || 'http://localhost:5173', credentials: true },
+        cors: {
+            origin: '*',
+            methods: ['GET', 'POST'],
+            credentials: false,
+        },
         namespace: '/chat',
+        transports: ['websocket', 'polling'],
     })
 ], ChatGateway);
 let ChatModule = class ChatModule {
