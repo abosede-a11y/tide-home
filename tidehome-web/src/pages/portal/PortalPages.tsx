@@ -176,15 +176,27 @@ export function ProfilePage() {
               Profile photo {!isAdminPlus && <span className="text-tide-muted font-normal">(admin only)</span>}
             </label>
             {isAdminPlus ? (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="form-input cursor-pointer flex items-center gap-2 text-tide-muted hover:text-tide-deep hover:border-tide-mid transition-all"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span className="text-sm">{photoFile ? photoFile.name : 'Click to upload photo (max 5MB)'}</span>
-              </div>
+              <>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="form-input cursor-pointer flex items-center gap-2 text-tide-muted hover:text-tide-deep hover:border-tide-mid transition-all"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span className="text-sm">{photoFile ? photoFile.name : 'Click to upload photo'}</span>
+                </div>
+                <div className="mt-2 bg-tide-sand rounded-lg px-3 py-2 space-y-0.5">
+                  <p className="text-[11px] text-tide-muted">📁 <strong>Accepted formats:</strong> JPG, PNG, GIF, WebP</p>
+                  <p className="text-[11px] text-tide-muted">📏 <strong>Maximum file size:</strong> 5MB</p>
+                  <p className="text-[11px] text-tide-muted">🖼️ <strong>Recommended:</strong> Square image, at least 200×200px</p>
+                  {photoFile && (
+                    <p className="text-[11px] text-tide-success font-medium mt-1">
+                      ✓ {photoFile.name} selected ({(photoFile.size / 1024 / 1024).toFixed(2)}MB)
+                    </p>
+                  )}
+                </div>
+              </>
             ) : (
               <input className="form-input bg-tide-sand cursor-not-allowed" value={user?.photoUrl || 'No photo uploaded'} readOnly/>
             )}

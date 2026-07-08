@@ -25,6 +25,11 @@ export class ResidentsController {
     return this.service.findByGuardian(req.user.id);
   }
 
+  @Get('archived')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all archived residents' })
+  findArchived() { return this.service.findArchived(); }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get single resident by ID' })
   findOne(@Param('id') id: string) { return this.service.findById(id); }
@@ -42,12 +47,7 @@ export class ResidentsController {
   }
 
   @Delete(':id')
-@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-@ApiOperation({ summary: 'Archive resident' })
-archive(@Param('id') id: string) { return this.service.archive(id); }
-
-@Get('archived')
-@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-@ApiOperation({ summary: 'Get all archived residents' })
-findArchived() { return this.service.findArchived(); }
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Archive resident' })
+  archive(@Param('id') id: string) { return this.service.archive(id); }
 }

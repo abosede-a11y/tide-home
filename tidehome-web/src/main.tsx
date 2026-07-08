@@ -18,8 +18,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Toaster
           position="top-right"
           toastOptions={{
-            style: { fontFamily: 'Inter, sans-serif', fontSize: '0.875rem' },
-            duration: 4000,
+            style: { fontFamily: 'Inter, sans-serif', fontSize: '0.9rem' },
+                duration: 60000,
           }}
         />
       </BrowserRouter>

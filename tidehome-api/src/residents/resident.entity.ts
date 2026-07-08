@@ -38,12 +38,13 @@ export class Resident {
   // Guardian user ID linked to this resident
   @Column({ nullable: true }) guardianUserId: string;
   @Column({ default: true }) isActive: boolean;
-  @CreateDateColumn() createdAt: Date;
-  @UpdateDateColumn() updatedAt: Date;
   @Column({ nullable: true })
   archivedAt: Date;
-@Column({ nullable: true })
+  @Column({ nullable: true })
   archiveReason: string;
+  @CreateDateColumn() createdAt: Date;
+  @UpdateDateColumn() updatedAt: Date;
+  
 
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;

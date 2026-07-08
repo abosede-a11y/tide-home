@@ -205,7 +205,7 @@ export function ResidentsPage() {
                           }
                         }}
                       >
-                        <Archive size={12}/>Archive
+                        <Archive size={12}/>Delete
                       </button>
                     )}
                   </div>

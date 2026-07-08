@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Resident, CarePackage, ResidentStatus } from './resident.entity';
+import { Resident } from './resident.entity';
 import { IsString, IsOptional, IsDateString, IsNumber } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -51,8 +51,9 @@ export class ResidentsService {
     return this.repo.find({ where: { isActive: true }, order: { createdAt: 'DESC' } });
   }
 
+  // No isActive filter here so both active and archived can be fetched by ID
   async findById(id: string): Promise<Resident> {
-    const r = await this.repo.findOne({ where: { id, isActive: true } });
+    const r = await this.repo.findOne({ where: { id } });
     if (!r) throw new NotFoundException('Resident not found');
     return r;
   }
@@ -61,10 +62,14 @@ export class ResidentsService {
     return this.repo.find({ where: { guardianUserId, isActive: true } });
   }
 
+  async findArchived(): Promise<Resident[]> {
+    return this.repo.find({ where: { isActive: false }, order: { createdAt: 'DESC' } });
+  }
+
   async create(dto: CreateResidentDto): Promise<Resident> {
-  const r = this.repo.create(dto as any) as unknown as Resident;
-  return this.repo.save(r);
-}
+    const r = this.repo.create(dto as any) as unknown as Resident;
+    return this.repo.save(r);
+  }
 
   async update(id: string, dto: UpdateResidentDto): Promise<Resident> {
     const r = await this.findById(id);
@@ -73,15 +78,11 @@ export class ResidentsService {
   }
 
   async archive(id: string): Promise<{ message: string }> {
-  const r = await this.findById(id);
-  r.isActive = false;
-  r.archivedAt = new Date();
-  r.archiveReason = 'Manually archived by admin';
-  await this.repo.save(r);
-  return { message: `${r.firstName} ${r.lastName}'s profile has been successfully archived` };
-}
-
-async findArchived(): Promise<Resident[]> {
-  return this.repo.find({ where: { isActive: false }, order: { archivedAt: 'DESC' } });
-}
+    const r = await this.findById(id);
+    r.isActive = false;
+    (r as any).archivedAt = new Date();
+    (r as any).archiveReason = 'Manually archived by admin';
+    await this.repo.save(r);
+    return { message: `${r.firstName} ${r.lastName}'s profile has been successfully archived` };
+  }
 }
