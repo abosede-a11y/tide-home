@@ -203,7 +203,7 @@ export function ResidentsPage() {
                         className="btn btn-sm btn-danger"
                         onClick={() => setConfirmArchive({ open: true, resident: r })}
                       >
-                        <Archive size={12}/>Archive
+                        <Archive size={12}/>Delete
                       </button>
                     )}
                     <ConfirmModal
