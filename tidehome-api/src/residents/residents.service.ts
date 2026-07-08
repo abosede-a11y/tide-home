@@ -27,6 +27,7 @@ export class CreateResidentDto {
 export class UpdateResidentDto {
   @ApiPropertyOptional() @IsOptional() @IsString() firstName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() lastName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() dateOfBirth?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() roomNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() floor?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() carePackage?: string;
@@ -71,10 +72,16 @@ export class ResidentsService {
     return this.repo.save(r);
   }
 
-  async deactivate(id: string): Promise<{ message: string }> {
-    const r = await this.findById(id);
-    r.isActive = false;
-    await this.repo.save(r);
-    return { message: 'Resident record deactivated' };
-  }
+  async archive(id: string): Promise<{ message: string }> {
+  const r = await this.findById(id);
+  r.isActive = false;
+  r.archivedAt = new Date();
+  r.archiveReason = 'Manually archived by admin';
+  await this.repo.save(r);
+  return { message: `${r.firstName} ${r.lastName}'s profile has been successfully archived` };
+}
+
+async findArchived(): Promise<Resident[]> {
+  return this.repo.find({ where: { isActive: false }, order: { archivedAt: 'DESC' } });
+}
 }

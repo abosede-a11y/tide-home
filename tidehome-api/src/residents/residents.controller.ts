@@ -42,7 +42,12 @@ export class ResidentsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Deactivate resident' })
-  deactivate(@Param('id') id: string) { return this.service.deactivate(id); }
+@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+@ApiOperation({ summary: 'Archive resident' })
+archive(@Param('id') id: string) { return this.service.archive(id); }
+
+@Get('archived')
+@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+@ApiOperation({ summary: 'Get all archived residents' })
+findArchived() { return this.service.findArchived(); }
 }

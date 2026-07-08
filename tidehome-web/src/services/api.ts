@@ -60,10 +60,11 @@ export const usersApi = {
 export const residentsApi = {
   getAll: () => api.get('/residents').then(r => r.data),
   getMyResidents: () => api.get('/residents/my-residents').then(r => r.data),
+  getArchived: () => api.get('/residents/archived').then(r => r.data),
   getById: (id: string) => api.get(`/residents/${id}`).then(r => r.data),
   create: (data: any) => api.post('/residents', data).then(r => r.data),
   update: (id: string, data: any) => api.patch(`/residents/${id}`, data).then(r => r.data),
-  deactivate: (id: string) => api.delete(`/residents/${id}`).then(r => r.data),
+  archive: (id: string) => api.delete(`/residents/${id}`).then(r => r.data),
 };
 
 // ── MEDICATIONS ───────────────────────────────────────

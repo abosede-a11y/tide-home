@@ -40,6 +40,10 @@ export class Resident {
   @Column({ default: true }) isActive: boolean;
   @CreateDateColumn() createdAt: Date;
   @UpdateDateColumn() updatedAt: Date;
+  @Column({ nullable: true })
+  archivedAt: Date;
+@Column({ nullable: true })
+  archiveReason: string;
 
   get fullName(): string {
     return `${this.firstName} ${this.lastName}`;

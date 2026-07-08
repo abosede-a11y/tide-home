@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { residentsApi, paymentsApi, appointmentsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Plus, Edit, Trash2, Download, CalendarPlus, Mail } from 'lucide-react';
+import { Plus, Edit, Trash2, Download, CalendarPlus, Mail, Archive } from 'lucide-react';
 
 const EMPTY_FORM = { firstName:'', lastName:'', dateOfBirth:'', roomNumber:'', floor:'1', carePackage:'Standard Care', medicalHistory:'', allergies:'', emergencyContact:'', emergencyPhone:'', gpName:'', gpPhone:'', guardianUserId:'' };
 
@@ -13,6 +13,7 @@ export function ResidentsPage() {
   const qc = useQueryClient();
   const isAdminPlus = ['superadmin','admin'].includes(user?.role || '');
   const [showModal, setShowModal] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [editId, setEditId] = useState<string|null>(null);
   const [form, setForm] = useState<typeof EMPTY_FORM>({ ...EMPTY_FORM });
 
@@ -21,27 +22,64 @@ export function ResidentsPage() {
     queryFn: user?.role === 'guardian' ? residentsApi.getMyResidents : residentsApi.getAll,
   });
 
+  const { data: archivedResidents = [] } = useQuery({
+    queryKey: ['residents-archived'],
+    queryFn: residentsApi.getArchived,
+    enabled: isAdminPlus && showArchived,
+  });
+
   const createMutation = useMutation({
     mutationFn: residentsApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['residents'] }); setShowModal(false); setEditId(null); setForm({ ...EMPTY_FORM }); toast.success('Resident registered successfully'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['residents'] });
+      setShowModal(false);
+      setEditId(null);
+      setForm({ ...EMPTY_FORM });
+      toast.success('Resident registered successfully');
+    },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to register resident'),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: any) => residentsApi.update(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['residents'] }); setShowModal(false); setEditId(null); setForm({ ...EMPTY_FORM }); toast.success('Resident updated'); },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['residents'] });
+      setShowModal(false);
+      setEditId(null);
+      setForm({ ...EMPTY_FORM });
+      toast.success('Resident updated successfully');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Failed to update resident'),
   });
 
-  const deactivateMutation = useMutation({
-    mutationFn: residentsApi.deactivate,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['residents'] }); toast.success('Resident deactivated'); },
+  const archiveMutation = useMutation({
+    mutationFn: residentsApi.archive,
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ['residents'] });
+      qc.invalidateQueries({ queryKey: ['residents-archived'] });
+      toast.success(data.message || 'Resident profile has been successfully archived');
+    },
+    onError: () => toast.error('Failed to archive resident'),
   });
 
   const openAdd = () => { setEditId(null); setForm({ ...EMPTY_FORM }); setShowModal(true); };
   const openEdit = (r: any) => {
     setEditId(r.id);
-    setForm({ firstName:r.firstName||'', lastName:r.lastName||'', dateOfBirth:r.dateOfBirth||'', roomNumber:r.roomNumber||'', floor:String(r.floor||1), carePackage:r.carePackage||'Standard Care', medicalHistory:r.medicalHistory||'', allergies:r.allergies||'', emergencyContact:r.emergencyContact||'', emergencyPhone:r.emergencyPhone||'', gpName:r.gpName||'', gpPhone:r.gpPhone||'', guardianUserId:r.guardianUserId||'' });
+    setForm({
+      firstName: r.firstName || '',
+      lastName: r.lastName || '',
+      dateOfBirth: r.dateOfBirth || '',
+      roomNumber: r.roomNumber || '',
+      floor: String(r.floor || 1),
+      carePackage: r.carePackage || 'Standard Care',
+      medicalHistory: r.medicalHistory || '',
+      allergies: r.allergies || '',
+      emergencyContact: r.emergencyContact || '',
+      emergencyPhone: r.emergencyPhone || '',
+      gpName: r.gpName || '',
+      gpPhone: r.gpPhone || '',
+      guardianUserId: r.guardianUserId || '',
+    });
     setShowModal(true);
   };
 
@@ -51,7 +89,12 @@ export function ResidentsPage() {
     else createMutation.mutate(payload);
   };
 
-  const statusClass: Record<string,string> = { stable:'pill-green', monitoring:'pill-blue', attention:'pill-amber', critical:'pill-red' };
+  const statusClass: Record<string,string> = {
+    stable: 'pill-green',
+    monitoring: 'pill-blue',
+    attention: 'pill-amber',
+    critical: 'pill-red',
+  };
 
   if (isLoading) return <div className="text-tide-muted text-sm">Loading residents…</div>;
 
@@ -62,71 +105,201 @@ export function ResidentsPage() {
           <h1 className="font-serif text-2xl text-tide-deep">Residents</h1>
           <p className="text-tide-muted text-sm mt-1">{residents.length} active resident{residents.length !== 1 ? 's' : ''}</p>
         </div>
-        {isAdminPlus && <button className="btn btn-primary" onClick={openAdd}><Plus size={15}/>Add resident</button>}
+        <div className="flex items-center gap-2">
+          {isAdminPlus && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowArchived(!showArchived)}
+            >
+              <Archive size={15}/>
+              {showArchived ? 'Hide archived' : 'View archived'}
+            </button>
+          )}
+          {isAdminPlus && (
+            <button className="btn btn-primary" onClick={openAdd}>
+              <Plus size={15}/>Add resident
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Archived residents section */}
+      {showArchived && isAdminPlus && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Archive size={16} className="text-tide-muted"/>
+            <h2 className="font-serif text-lg text-tide-muted">Archived residents ({archivedResidents.length})</h2>
+          </div>
+          {archivedResidents.length === 0 ? (
+            <div className="card text-center text-tide-muted py-8 text-sm">No archived residents</div>
+          ) : (
+            <div className="table-wrap opacity-75">
+              <table className="w-full">
+                <thead><tr>
+                  <th className="th">Resident</th>
+                  <th className="th">Package</th>
+                  <th className="th">Archived on</th>
+                  <th className="th">Reason</th>
+                </tr></thead>
+                <tbody>
+                  {archivedResidents.map((r: any) => (
+                    <tr key={r.id} className="bg-gray-50">
+                      <td className="td">
+                        <div className="font-medium text-tide-muted">{r.firstName} {r.lastName}</div>
+                        <div className="text-xs text-tide-muted">{r.dateOfBirth}</div>
+                      </td>
+                      <td className="td text-tide-muted">{r.carePackage}</td>
+                      <td className="td text-xs text-tide-muted">
+                        {r.archivedAt ? new Date(r.archivedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                      <td className="td text-xs text-tide-muted">{r.archiveReason || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Active residents table */}
       <div className="table-wrap">
         <table className="w-full">
           <thead><tr>
-            <th className="th">Resident</th><th className="th">Room</th><th className="th">Package</th>
-            <th className="th">Emergency contact</th><th className="th">Status</th><th className="th">Actions</th>
+            <th className="th">Resident</th>
+            <th className="th">Room</th>
+            <th className="th">Package</th>
+            <th className="th">Emergency contact</th>
+            <th className="th">Status</th>
+            <th className="th">Actions</th>
           </tr></thead>
           <tbody>
             {residents.map((r: any) => (
               <tr key={r.id} className="hover:bg-tide-sand/20 transition-colors">
-                <td className="td"><div className="font-medium">{r.firstName} {r.lastName}</div><div className="text-xs text-tide-muted">{r.dateOfBirth}</div></td>
+                <td className="td">
+                  <div className="font-medium">{r.firstName} {r.lastName}</div>
+                  <div className="text-xs text-tide-muted">{r.dateOfBirth}</div>
+                </td>
                 <td className="td">Room {r.roomNumber}, Floor {r.floor}</td>
                 <td className="td">{r.carePackage}</td>
-                <td className="td"><div>{r.emergencyContact}</div><div className="text-xs text-tide-muted">{r.emergencyPhone}</div></td>
-                <td className="td"><span className={`pill ${statusClass[r.status] || 'pill-gray'}`}>{r.status}</span></td>
+                <td className="td">
+                  <div>{r.emergencyContact}</div>
+                  <div className="text-xs text-tide-muted">{r.emergencyPhone}</div>
+                </td>
+                <td className="td">
+                  <span className={`pill ${statusClass[r.status] || 'pill-gray'}`}>{r.status}</span>
+                </td>
                 <td className="td">
                   <div className="flex items-center gap-1.5">
-                    {isAdminPlus && <button className="btn btn-sm btn-secondary" onClick={() => openEdit(r)}><Edit size={12}/>Edit</button>}
-                    {isAdminPlus && <button className="btn btn-sm btn-danger" onClick={() => { if(confirm('Deactivate this resident?')) deactivateMutation.mutate(r.id); }}><Trash2 size={12}/></button>}
+                    {isAdminPlus && (
+                      <button className="btn btn-sm btn-secondary" onClick={() => openEdit(r)}>
+                        <Edit size={12}/>Edit
+                      </button>
+                    )}
+                    {isAdminPlus && (
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => {
+                          if (confirm(`Archive ${r.firstName} ${r.lastName}'s profile? Their record will be moved to the archive and can be retrieved if needed.`)) {
+                            archiveMutation.mutate(r.id);
+                          }
+                        }}
+                      >
+                        <Archive size={12}/>Archive
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
-            {residents.length === 0 && <tr><td colSpan={6} className="td text-center text-tide-muted py-8">No residents found</td></tr>}
+            {residents.length === 0 && (
+              <tr><td colSpan={6} className="td text-center text-tide-muted py-8">No active residents found</td></tr>
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="px-6 py-4 border-b border-tide-deep/10 flex items-center justify-between">
-              <h3 className="font-serif text-xl text-tide-deep">{editId ? 'Edit resident' : 'Register new resident'}</h3>
+              <h3 className="font-serif text-xl text-tide-deep">
+                {editId ? 'Edit resident' : 'Register new resident'}
+              </h3>
               <button onClick={() => setShowModal(false)} className="text-tide-muted text-xl">✕</button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="form-label">First name</label><input className="form-input" value={form.firstName} onChange={e => setForm({...form, firstName:e.target.value})} placeholder="Margaret"/></div>
-                <div><label className="form-label">Last name</label><input className="form-input" value={form.lastName} onChange={e => setForm({...form, lastName:e.target.value})} placeholder="Adeyemi"/></div>
+                <div>
+                  <label className="form-label">First name</label>
+                  <input className="form-input" value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} placeholder="Margaret"/>
+                </div>
+                <div>
+                  <label className="form-label">Last name</label>
+                  <input className="form-input" value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} placeholder="Adeyemi"/>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="form-label">Date of birth</label><input type="date" className="form-input" value={form.dateOfBirth} onChange={e => setForm({...form, dateOfBirth:e.target.value})}/></div>
-                <div><label className="form-label">Room number</label><input className="form-input" value={form.roomNumber} onChange={e => setForm({...form, roomNumber:e.target.value})} placeholder="14"/></div>
+                <div>
+                  <label className="form-label">Date of birth</label>
+                  <input type="date" className="form-input" value={form.dateOfBirth} onChange={e => setForm({...form, dateOfBirth: e.target.value})}/>
+                </div>
+                <div>
+                  <label className="form-label">Room number</label>
+                  <input className="form-input" value={form.roomNumber} onChange={e => setForm({...form, roomNumber: e.target.value})} placeholder="14"/>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="form-label">Floor</label><input type="number" className="form-input" value={form.floor} onChange={e => setForm({...form, floor:e.target.value})} min="1"/></div>
-                <div><label className="form-label">Care package</label>
-                  <select className="form-input" value={form.carePackage} onChange={e => setForm({...form, carePackage:e.target.value})}>
-                    <option>Standard Care</option><option>Enhanced Care</option><option>Premium Care</option>
+                <div>
+                  <label className="form-label">Floor</label>
+                  <input type="number" className="form-input" value={form.floor} onChange={e => setForm({...form, floor: e.target.value})} min="1"/>
+                </div>
+                <div>
+                  <label className="form-label">Care package</label>
+                  <select className="form-input" value={form.carePackage} onChange={e => setForm({...form, carePackage: e.target.value})}>
+                    <option>Standard Care</option>
+                    <option>Enhanced Care</option>
+                    <option>Premium Care</option>
                   </select>
                 </div>
               </div>
-              <div><label className="form-label">Emergency contact name</label><input className="form-input" value={form.emergencyContact} onChange={e => setForm({...form, emergencyContact:e.target.value})} placeholder="Guardian full name"/></div>
-              <div><label className="form-label">Emergency contact phone</label><input className="form-input" value={form.emergencyPhone} onChange={e => setForm({...form, emergencyPhone:e.target.value})} placeholder="+44 ..."/></div>
-              <div><label className="form-label">GP name</label><input className="form-input" value={form.gpName} onChange={e => setForm({...form, gpName:e.target.value})} placeholder="Dr. Smith"/></div>
-              <div><label className="form-label">GP phone</label><input className="form-input" value={form.gpPhone} onChange={e => setForm({...form, gpPhone:e.target.value})} placeholder="+44 ..."/></div>
-              <div><label className="form-label">Allergies</label><input className="form-input" value={form.allergies} onChange={e => setForm({...form, allergies:e.target.value})} placeholder="Known allergies…"/></div>
-              <div><label className="form-label">Medical history / notes</label><textarea className="form-input" rows={3} value={form.medicalHistory} onChange={e => setForm({...form, medicalHistory:e.target.value})} placeholder="Any relevant medical history…"/></div>
+              <div>
+                <label className="form-label">Emergency contact name</label>
+                <input className="form-input" value={form.emergencyContact} onChange={e => setForm({...form, emergencyContact: e.target.value})} placeholder="Guardian full name"/>
+              </div>
+              <div>
+                <label className="form-label">Emergency contact phone</label>
+                <input className="form-input" value={form.emergencyPhone} onChange={e => setForm({...form, emergencyPhone: e.target.value})} placeholder="+44 ..."/>
+              </div>
+              <div>
+                <label className="form-label">GP name</label>
+                <input className="form-input" value={form.gpName} onChange={e => setForm({...form, gpName: e.target.value})} placeholder="Dr. Smith"/>
+              </div>
+              <div>
+                <label className="form-label">GP phone</label>
+                <input className="form-input" value={form.gpPhone} onChange={e => setForm({...form, gpPhone: e.target.value})} placeholder="+44 ..."/>
+              </div>
+              <div>
+                <label className="form-label">Allergies</label>
+                <input className="form-input" value={form.allergies} onChange={e => setForm({...form, allergies: e.target.value})} placeholder="Known allergies…"/>
+              </div>
+              <div>
+                <label className="form-label">Medical history / notes</label>
+                <textarea className="form-input" rows={3} value={form.medicalHistory} onChange={e => setForm({...form, medicalHistory: e.target.value})} placeholder="Any relevant medical history…"/>
+              </div>
             </div>
             <div className="px-6 py-4 border-t border-tide-deep/10 flex justify-end gap-3">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
-                {createMutation.isPending || updateMutation.isPending ? 'Saving…' : editId ? 'Update resident' : 'Register resident'}
+              <button
+                className="btn btn-primary"
+                onClick={handleSave}
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? 'Saving…'
+                  : editId ? 'Update resident' : 'Register resident'
+                }
               </button>
             </div>
           </div>
