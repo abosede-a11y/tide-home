@@ -5,6 +5,7 @@ import { residentsApi, paymentsApi, appointmentsApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Plus, Edit, Trash2, Download, CalendarPlus, Mail, Archive } from 'lucide-react';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 
 const EMPTY_FORM = { firstName:'', lastName:'', dateOfBirth:'', roomNumber:'', floor:'1', carePackage:'Standard Care', medicalHistory:'', allergies:'', emergencyContact:'', emergencyPhone:'', gpName:'', gpPhone:'', guardianUserId:'' };
 
@@ -16,6 +17,7 @@ export function ResidentsPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [editId, setEditId] = useState<string|null>(null);
   const [form, setForm] = useState<typeof EMPTY_FORM>({ ...EMPTY_FORM });
+  const [confirmArchive, setConfirmArchive] = useState<{ open: boolean; resident: any | null }>({ open: false, resident: null });
 
   const { data: residents = [], isLoading } = useQuery({
     queryKey: ['residents'],
@@ -199,15 +201,26 @@ export function ResidentsPage() {
                     {isAdminPlus && (
                       <button
                         className="btn btn-sm btn-danger"
-                        onClick={() => {
-                          if (confirm(`Archive ${r.firstName} ${r.lastName}'s profile? Their record will be moved to the archive and can be retrieved if needed.`)) {
-                            archiveMutation.mutate(r.id);
-                          }
-                        }}
+                        onClick={() => setConfirmArchive({ open: true, resident: r })}
                       >
-                        <Archive size={12}/>Delete
+                        <Archive size={12}/>Archive
                       </button>
                     )}
+                    <ConfirmModal
+                      open={confirmArchive.open}
+                      title="Archive resident"
+                      message={`Are you sure you want to archive ${confirmArchive.resident?.firstName} ${confirmArchive.resident?.lastName}'s profile? Their record will be moved to the archive and can be retrieved if needed.`}
+                      confirmLabel="Yes, archive"
+                      cancelLabel="Cancel"
+                      variant="archive"
+                      loading={archiveMutation.isPending}
+                      onConfirm={() => {
+                        archiveMutation.mutate(confirmArchive.resident?.id, {
+                          onSuccess: () => setConfirmArchive({ open: false, resident: null }),
+                        });
+                      }}
+                      onCancel={() => setConfirmArchive({ open: false, resident: null })}
+                    />
                   </div>
                 </td>
               </tr>
@@ -594,7 +607,6 @@ export function AppointmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const isStaffPlus = ['superadmin','admin','staff'].includes(user?.role || '');
   const [form, setForm] = useState({ residentId:'', residentName:'', appointmentType:'', hospital:'', scheduledAt:'', notes:'' });
-
   const { data: appointments = [], isLoading } = useQuery({ queryKey:['appointments'], queryFn: appointmentsApi.getAll });
   const { data: residents = [] } = useQuery({ queryKey:['residents'], queryFn: residentsApi.getAll, enabled: isStaffPlus });
 

@@ -5,6 +5,7 @@ import { usersApi, permissionsApi, blogApi, faqApi, contactApi } from '../../ser
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Plus, Edit, Trash2, Send, Phone, Mail } from 'lucide-react';
 import { io } from 'socket.io-client';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 
 // ─── PROFILE PAGE ─────────────────────────────────────────────────────────────
 export function ProfilePage() {
@@ -290,7 +291,7 @@ export function UsersPage() {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', role: 'guardian', linkedResidentId: '' });
-
+  const [confirmDeactivate, setConfirmDeactivate] = useState<{ open: boolean; user: any | null }>({ open: false, user: null });
   const { data: users = [], isLoading } = useQuery({ queryKey: ['users'], queryFn: usersApi.getAll });
 
   const createMutation = useMutation({
@@ -357,9 +358,9 @@ export function UsersPage() {
                     {user?.role === 'superadmin' && (
                       <button
                         className="btn btn-sm btn-danger"
-                        onClick={() => { if (confirm('Deactivate this account?')) deactivateMutation.mutate(u.id); }}
+                        onClick={() => setConfirmDeactivate({ open: true, user: u })}
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={12}/>
                       </button>
                     )}
                   </div>
@@ -418,7 +419,22 @@ export function UsersPage() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={confirmDeactivate.open}
+        title="Deactivate account"
+        message={`Are you sure you want to deactivate ${confirmDeactivate.user?.firstName} ${confirmDeactivate.user?.lastName}'s account? They will no longer be able to log in.`}
+        confirmLabel="Yes, deactivate"
+        variant="danger"
+        loading={deactivateMutation.isPending}
+        onConfirm={() => {
+          deactivateMutation.mutate(confirmDeactivate.user?.id, {
+            onSuccess: () => setConfirmDeactivate({ open: false, user: null }),
+          });
+        }}
+        onCancel={() => setConfirmDeactivate({ open: false, user: null })}
+      />
     </div>
+    
   );
 }
 
@@ -492,7 +508,7 @@ export function BlogAdminPage() {
   const [showModal, setShowModal] = useState(false);
   const [editPost, setEditPost] = useState<any>(null);
   const [form, setForm] = useState({ title: '', content: '', excerpt: '', isPublished: true });
-
+  
   const { data: posts = [], isLoading } = useQuery({ queryKey: ['blog-admin'], queryFn: blogApi.getAll });
 
   const createMutation = useMutation({
