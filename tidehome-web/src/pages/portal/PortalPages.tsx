@@ -75,18 +75,28 @@ export function ProfilePage() {
   });
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5MB'); return; }
-    setPhotoFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setPhotoPreview(dataUrl);
-      setAdminForm(f => ({ ...f, photoUrl: dataUrl }));
-    };
-    reader.readAsDataURL(file);
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const maxSizeMB = 5;
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+  if (file.size > maxSizeBytes) {
+    toast.error(`Photo is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum allowed size is ${maxSizeMB}MB.`);
+    // Reset the input
+    e.target.value = '';
+    return;
+  }
+
+  setPhotoFile(file);
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target?.result as string;
+    setPhotoPreview(dataUrl);
+    setAdminForm((f: any) => ({ ...f, photoUrl: dataUrl }));
   };
+  reader.readAsDataURL(file);
+};
 
   const handleChangePw = () => {
     if (pwForm.newPassword !== pwForm.confirm) { toast.error('Passwords do not match'); return; }

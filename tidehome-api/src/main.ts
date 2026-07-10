@@ -1,12 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Trust proxy (needed on Render)
+  // Increase body size limit to handle base64 photo uploads
+  app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.useGlobalPipes(
@@ -17,7 +21,7 @@ async function bootstrap() {
     }),
   );
 
-  // CORS — allow both local dev and production frontend
+  // CORS
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://localhost:5173',
@@ -33,7 +37,6 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  // Only expose Swagger in non-production
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('Tide Home API')
