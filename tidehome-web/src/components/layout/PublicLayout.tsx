@@ -133,7 +133,7 @@ export default function PublicLayout() {
             </div>
           </div>
           <div className="border-t border-white/10 pt-6 flex flex-wrap items-center justify-between gap-4">
-            <div className="text-xs text-white/30">© 2025 Tide Home Care Services Ltd. All rights reserved.</div>
+            <div className="text-xs text-white/30">© 2026 Tide Home Care Services Ltd. All rights reserved.</div>
             <Link to="/login" className="text-xs text-white/30 hover:text-white/60 transition-colors">Member portal →</Link>
           </div>
         </div>
